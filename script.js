@@ -842,13 +842,32 @@
   }
 
   // 同群組同等級的項目機率合計，也就是把原始項目機率換算成群組內命中率時的分母。
-  function getGradeItemRateTotal(row) {
-    return getRowsForGrade(row.groupId, row.grade)
+  function getGradeItemRateTotal(groupId, grade) {
+    return getRowsForGrade(groupId, grade)
       .reduce((sum, gradeRow) => sum + gradeRow.itemRate, 0);
   }
 
+  function getGroupItemRateTotal(groupId) {
+    return (rowsByGroup.get(groupId) ?? [])
+      .reduce((sum, row) => sum + row.itemRate, 0);
+  }
+
+  // 某一格抽到指定等級時，該群組被選中的權重。
+  // 抽取順序是「群組 → 項目」，所以群組機率必須乘上該群組真的吐出這個等級的比例：
+  // 群組11/12/17/18 全是中級，抽中就必定是中級，權重＝完整群組機率；
+  // 群組5 只有 2.60% 的項目是中級，權重要按比例縮小。
+  // 若只用群組機率正規化，會讓罕見但保證出中級的群組被嚴重低估（差到 25 倍）。
+  // 分母用該群組自己的項目合計而非 100：群組3 截圖只揭露 62.12%，
+  // 與 getItemRateInGrade 一樣以可見項目重新正規化，兩處假設才會一致。
+  function getGroupGradeWeight(group, grade) {
+    const groupTotal = getGroupItemRateTotal(group.id);
+    return groupTotal > 0
+      ? group.rate * (getGradeItemRateTotal(group.id, grade) / groupTotal)
+      : 0;
+  }
+
   function getItemRateInGrade(row) {
-    const total = getGradeItemRateTotal(row);
+    const total = getGradeItemRateTotal(row.groupId, row.grade);
     return total > 0 ? row.itemRate / total : 0;
   }
 
@@ -856,9 +875,10 @@
     const available = groups.filter((currentGroup) =>
       !excludedGroups.has(currentGroup.id)
       && getRowsForGrade(currentGroup.id, grade).length > 0);
-    const total = available.reduce((sum, currentGroup) => sum + currentGroup.rate, 0);
+    const total = available.reduce((sum, currentGroup) =>
+      sum + getGroupGradeWeight(currentGroup, grade), 0);
     const target = available.find((currentGroup) => currentGroup.id === groupId);
-    return target && total > 0 ? target.rate / total : 0;
+    return target && total > 0 ? getGroupGradeWeight(target, grade) / total : 0;
   }
 
   // 白字欄位沒有位置差異：指定能力可出現在任一未釘白字格。
@@ -870,12 +890,13 @@
     const availableGroups = groups.filter((currentGroup) =>
       !usedGroups.has(currentGroup.id)
       && getRowsForGrade(currentGroup.id, GRADE_LOW).length > 0);
-    const totalGroupRate = availableGroups.reduce((sum, currentGroup) => sum + currentGroup.rate, 0);
+    const totalGroupRate = availableGroups.reduce((sum, currentGroup) =>
+      sum + getGroupGradeWeight(currentGroup, GRADE_LOW), 0);
     if (totalGroupRate <= 0) return 0;
 
     let result = 0;
     availableGroups.forEach((currentGroup) => {
-      const groupRate = currentGroup.rate / totalGroupRate;
+      const groupRate = getGroupGradeWeight(currentGroup, GRADE_LOW) / totalGroupRate;
       const targetIndex = targetRows.findIndex((row) => row.groupId === currentGroup.id);
       const nextUsed = new Set(usedGroups);
       nextUsed.add(currentGroup.id);
@@ -945,6 +966,8 @@
       return;
     }
 
+    const gradeLabel = getGradeLabel(matched);
+    const gradeTotal = getGradeItemRateTotal(matched.groupId, matched.grade);
     const itemRate = getItemRateInGrade(matched);
     // 群組11、12這類單一能力群組的群組內命中率必為100%，直接標成「必中」會被誤讀成穩拿，
     // 改寫成條件敘述，真正的機率交給整顆石頭命中率呈現。
@@ -954,18 +977,23 @@
       ? "群組內唯一同級能力・抽中群組即命中"
       : `群組內指定能力命中率 ${formatProbability(itemRate)}`
         + `（原始項目機率 ${formatRate(matched.itemRate)}`
-        + ` ÷ 群組內${getGradeLabel(matched)}項目合計 ${formatRate(getGradeItemRateTotal(matched))}）`;
-    // 一顆301階石頭出現該能力的機率，口徑與釘選策略的計算一致：
-    // 群組機率要在「同等級可抽的群組」之間重新正規化，不能直接除以100；
-    // 白字有三格且群組不可重複，需用聯合機率遞迴，只算一格會低估約三倍。
+        + ` ÷ 群組內${gradeLabel}項目合計 ${formatRate(gradeTotal)}）`;
+    // 這一格抽中該群組的機率。原始群組機率要先乘上「該群組吐出這個等級的比例」再正規化，
+    // 所以跟參數速查表的群組機率不會相等；把它顯示出來，整行的乘法才對得起來。
+    const slotGroupRate = getConditionalGroupRate(matched.groupId, matched.grade, new Set());
+    const slotLabel = matched.grade === GRADE_INTERMEDIATE ? "藍字格" : "白字格";
+    const slotGroupRateText = `${slotLabel}抽中此群組 ${formatProbability(slotGroupRate)}`;
+    // 一顆301階石頭出現該能力的機率。白字有三格且群組不可重複，需用聯合機率遞迴，
+    // 只算一格會低估約三倍；藍字只有一格，就是上面兩個數字相乘。
     const totalRate = matched.grade === GRADE_LOW
       ? getWhiteTargetSetRate([matched], new Set(), WHITE_SLOT_COUNT)
-      : getConditionalGroupRate(matched.groupId, matched.grade, new Set()) * itemRate;
+      : slotGroupRate * itemRate;
     const totalRateText = `整顆石頭命中率 ${formatProbability(totalRate)}`
       + (matched.grade === GRADE_LOW ? `（${WHITE_SLOT_COUNT} 個白字格合計）` : "");
     feedback.textContent = matched.grade === GRADE_HIGH
       ? `群組19｜指定能力命中率 ${formatProbability(itemRate)}｜高級・301階以上必定出現`
       : `群組${matched.groupId}｜群組機率 ${formatRate(matched.groupRate)}`
+        + `｜${slotGroupRateText}`
         + `｜${itemRateText}`
         + `｜${totalRateText}`;
     // 群組3的截圖資料不完整（項目合計僅62.12%），重新正規化後的命中率可能偏高。
