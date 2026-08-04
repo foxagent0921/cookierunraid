@@ -915,6 +915,13 @@ mark {
   border-top: 1px dashed var(--teal);
 }
 
+.strategy-verdict__policy-caveat {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
 .strategy-result tbody tr.is-best,
 .rules-card__body tbody tr.is-best {
   background: var(--teal-soft);

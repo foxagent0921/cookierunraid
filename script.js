@@ -1363,7 +1363,10 @@
     } else {
       policy.textContent = "自訂釘法：此處只計算目前兩格已釘後的終局成本，不代表從零開始的完整路線；請連同取得釘選內容的前置成本一起判斷。";
     }
-    verdict.append(badge, headline, policy);
+    const policyCaveat = document.createElement("p");
+    policyCaveat.className = "strategy-verdict__policy-caveat";
+    policyCaveat.textContent = "機率以官方公開資訊推算，計算結果僅供參考，很多隱藏參數沒考慮進去 (例如只有藍弱點，就不會抽到 紅/黃屬性)。";
+    verdict.append(badge, headline, policy, policyCaveat);
 
     const unrestrictedWhiteCount = result.rollingWhiteSlotCount - result.rollingWhites.length;
     const whiteCondition = result.rollingWhites.length > 0
