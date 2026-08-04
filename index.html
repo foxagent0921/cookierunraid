@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Cookie Run 打怪賽雕刻召喚石附加能力與機率速查表。">
+  <meta name="description" content="Cookie Run 打怪賽雕刻召喚石釘選策略、達成機率與期望花費評估工具。">
   <meta name="theme-color" content="#6d351f">
-  <title>雕刻召喚石機率速查｜Cookie Run 打怪賽</title>
+  <title>雕刻召喚石釘選策略評估｜Cookie Run 打怪賽</title>
   <link rel="stylesheet" href="./styles.css">
   <script src="./script.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#parameter-table">跳到參數表格</a>
+  <a class="skip-link" href="#strategy-title">跳到釘選策略評估</a>
 
   <header class="hero">
     <div class="hero__content">
       <p class="eyebrow">Cookie Run 打怪賽</p>
-      <h1>雕刻召喚石機率速查</h1>
-      <p class="hero__description">集中查詢召喚石附加能力、群組機率與項目機率。</p>
+      <h1>雕刻召喚石釘選策略評估</h1>
+      <p class="hero__description">選擇目標能力與釘選欄位，計算單轉達成率、期望轉數與花費。</p>
     </div>
   </header>
 
@@ -24,36 +24,26 @@
     <nav class="page-tabs" role="tablist" aria-label="參數工具">
       <button
         class="page-tab is-active"
-        id="lookup-tab"
-        type="button"
-        role="tab"
-        aria-selected="true"
-        aria-controls="lookup-panel"
-        data-tab="lookup"
-      >參數速查</button>
-      <button
-        class="page-tab"
-        id="owned-tab"
-        type="button"
-        role="tab"
-        aria-selected="false"
-        aria-controls="owned-panel"
-        data-tab="owned"
-        tabindex="-1"
-      >現有屬性分析</button>
-      <button
-        class="page-tab"
         id="strategy-tab"
         type="button"
         role="tab"
-        aria-selected="false"
+        aria-selected="true"
         aria-controls="strategy-panel"
         data-tab="strategy"
-        tabindex="-1"
       >釘選策略評估</button>
+      <button
+        class="page-tab"
+        id="lookup-tab"
+        type="button"
+        role="tab"
+        aria-selected="false"
+        aria-controls="lookup-panel"
+        data-tab="lookup"
+        tabindex="-1"
+      >參數速查</button>
     </nav>
 
-    <div id="lookup-panel" role="tabpanel" aria-labelledby="lookup-tab">
+    <div id="lookup-panel" role="tabpanel" aria-labelledby="lookup-tab" hidden>
       <section class="search-panel" aria-labelledby="search-title">
         <div class="section-heading">
           <div>
@@ -136,88 +126,20 @@
       </section>
     </div>
 
-    <div id="owned-panel" role="tabpanel" aria-labelledby="owned-tab" hidden>
-      <section class="analysis-panel" aria-labelledby="analysis-title">
-        <div class="section-heading analysis-heading">
-          <div>
-            <p class="section-heading__kicker">OWNED ATTRIBUTES</p>
-            <h2 id="analysis-title">輸入現有屬性</h2>
-          </div>
-          <p class="selection-count" id="selection-count" role="status" aria-live="polite">已選擇 0 / 5 個</p>
-        </div>
-
-        <p class="analysis-intro">從建議清單選擇 1～5 個現有屬性，即可查看各自機率。相同群組不可重複，高級與中級能力也各自只能選擇 1 個。清單與表格中標示 ★ 推薦的，就是原始資料標 <code>**</code> 的推薦藍字與標 <code>#</code> 的推薦白字。</p>
-
-        <div class="property-slots" id="property-slots"></div>
-
-        <div class="analysis-actions">
-          <button class="button button--primary" id="add-property-button" type="button">＋ 新增一個屬性</button>
-          <button class="button button--secondary" id="clear-analysis-button" type="button">全部清除</button>
-        </div>
-
-        <div class="rule-warning" id="rule-warning" role="alert" hidden></div>
-
-        <div class="probability-section">
-          <div class="subsection-heading">
-            <h3>已選屬性的機率</h3>
-            <p>綜合機率＝群組機率 × 群組內項目機率</p>
-          </div>
-
-          <div class="analysis-empty" id="analysis-empty">
-            <p class="empty-state__title">尚未選擇屬性</p>
-            <p>先在上方輸入並選取一個完整屬性。</p>
-          </div>
-
-          <div class="analysis-table-frame" id="analysis-table-frame" hidden>
-            <table id="selected-property-table">
-              <caption>已選屬性的群組機率、項目機率與綜合機率</caption>
-              <thead>
-                <tr>
-                  <th scope="col">現有屬性</th>
-                  <th scope="col">群組</th>
-                  <th scope="col">群組機率</th>
-                  <th scope="col">群組內機率</th>
-                  <th scope="col">綜合機率</th>
-                </tr>
-              </thead>
-              <tbody id="selected-probabilities"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section class="blocked-section" aria-labelledby="blocked-title">
-        <div class="results__header">
-          <div>
-            <p class="section-heading__kicker">EXCLUDED GROUPS</p>
-            <h2 id="blocked-title">不可能再刷到的能力</h2>
-          </div>
-          <p class="result-count result-count--blocked" id="blocked-count">0 個分類</p>
-        </div>
-
-        <p class="blocked-note">已有任一屬性後，同群組中的其他能力不會再次出現；若已有中級能力，其他群組的所有中級能力也會一併排除。</p>
-
-        <div class="analysis-empty" id="blocked-empty">
-          <p class="empty-state__title">尚無已排除能力</p>
-          <p>選擇現有屬性後，這裡會依群組及能力等級列出無法再刷到的項目。</p>
-        </div>
-        <div class="blocked-groups" id="blocked-groups"></div>
-      </section>
-    </div>
-
-    <div id="strategy-panel" role="tabpanel" aria-labelledby="strategy-tab" hidden>
+    <div id="strategy-panel" role="tabpanel" aria-labelledby="strategy-tab">
       <section class="analysis-panel" aria-labelledby="strategy-title">
         <div class="section-heading analysis-heading">
           <div>
             <p class="section-heading__kicker">PIN STRATEGY</p>
-            <h2 id="strategy-title">選 2 個還沒到手的白字目標</h2>
+            <h2 id="strategy-title">設定三至五格目標與兩個釘選欄位</h2>
           </div>
-          <p class="selection-count" id="strategy-count" role="status" aria-live="polite">已選擇 0 / 2 個</p>
+          <p class="selection-count" id="strategy-count" role="status" aria-live="polite">已設定 0 / 5 格（至少 3 格）｜已釘選 2 / 2 格</p>
         </div>
 
         <p class="analysis-intro">
-          前提：這顆召喚石的紫字（群組19）已經是想要的，藍字也已經是 ★ 推薦藍字其中之一，只差 2 個白字。
-          釘選只能保留 2 格、其餘 3 格必須重骰，所以要決定「連紫字一起釘」還是「放掉紫字、改釘已到手的白字」。
+          依序設定 1 個群組19紫字能力、1 個藍字能力與至少 1 個白字能力，另外 2 個白字可留空。
+          藍字、白字都會顯示排除重複群組後的完整列表，★ 只代表推薦標記。預設的紫＋藍代表「尚未取得指定白字」的過渡狀態；
+          指定白字出現後，通常應改釘藍＋白，並優先保留較難抽的白字。
         </p>
 
         <div class="property-slots" id="strategy-targets"></div>
@@ -230,12 +152,11 @@
       <details class="rules-card">
         <summary>計算方式與假設</summary>
         <div class="rules-card__body">
-          <p>紫字固定來自群組 19（301階以上必定出現），9 個項目等機率，命中想要的那個為 <strong>1/9</strong>。</p>
-          <p>★ 推薦藍字在兩種方案中都全程釘住，屬於共同項，不影響比較，因此不需輸入。</p>
-          <p>白字每格命中率 <strong>a ＝ 群組機率 × 群組內項目機率</strong>，即「現有屬性分析」的綜合機率。3 個白字格近似為獨立抽取；群組不可重複造成的微小相關性會讓實際成功率略高於此處估計，兩方案同向，不影響結論。</p>
-          <p class="rule-highlight">目標只能選<strong>低級（白字）</strong>項目，因為紫字與藍字在此情境已固定。兩個目標若同群組則不可能並存，清單會自動排除。</p>
-          <p class="rule-highlight rule-highlight--recommended">建議從 <strong>23 個 ★ 推薦白字</strong>（原始資料標 <code>#</code>）裡挑目標；在搜尋欄輸入「推薦白字」即可只看這些項目。</p>
-          <p>完整推導、交叉點與數值表見 repo 內的 <code>釘選策略分析.md</code>。</p>
+          <p>紫字固定來自群組19；如果沒有釘選紫字，指定內容的命中率依群組19內的項目權重計算，目前為 <strong>1/9</strong>。</p>
+          <p>藍字欄位列出<strong>全部43個中級能力</strong>，其中9個 <code>**</code> 能力會加上 ★ 推薦標記；白字欄位列出全部低級能力，其中23個 <code>#</code> 能力會加上 ★ 推薦標記。兩者都不限制只能選推薦能力。</p>
+          <p class="rule-highlight">藍字與已設定的白字必須使用不同群組；選定能力後，其他欄位的建議清單會即時排除同群組的所有能力，計算時也會再次驗證。</p>
+          <p>紫字、藍字及1個白字設定完成後即可計算；未設定的白字格視為不限能力。機率仍完整套用群組不可重複規則，多個目標白字可用任意排列命中，不使用獨立近似。</p>
+          <p class="rule-highlight rule-highlight--recommended">期望花費是<strong>目前兩格已釘後</strong>的終局成本：每轉5,000點，計算為 <code>5,000 ÷ 單轉達成率</code>。不同釘法可能不是同一起跑點，結果不包含取得釘選內容及中途換釘的前置成本，不能直接當成完整路線總花費。</p>
         </div>
       </details>
     </div>

@@ -255,10 +255,8 @@
 
   const elements = {
     lookupTab: document.querySelector("#lookup-tab"),
-    ownedTab: document.querySelector("#owned-tab"),
     strategyTab: document.querySelector("#strategy-tab"),
     lookupPanel: document.querySelector("#lookup-panel"),
-    ownedPanel: document.querySelector("#owned-panel"),
     strategyPanel: document.querySelector("#strategy-panel"),
     form: document.querySelector("#filter-form"),
     search: document.querySelector("#search-input"),
@@ -268,17 +266,6 @@
     body: document.querySelector("#parameter-body"),
     empty: document.querySelector("#empty-state"),
     resultCount: document.querySelector("#result-count"),
-    propertySlots: document.querySelector("#property-slots"),
-    addProperty: document.querySelector("#add-property-button"),
-    clearAnalysis: document.querySelector("#clear-analysis-button"),
-    selectionCount: document.querySelector("#selection-count"),
-    ruleWarning: document.querySelector("#rule-warning"),
-    analysisEmpty: document.querySelector("#analysis-empty"),
-    analysisTableFrame: document.querySelector("#analysis-table-frame"),
-    selectedProbabilities: document.querySelector("#selected-probabilities"),
-    blockedCount: document.querySelector("#blocked-count"),
-    blockedEmpty: document.querySelector("#blocked-empty"),
-    blockedGroups: document.querySelector("#blocked-groups"),
     strategyTargets: document.querySelector("#strategy-targets"),
     strategyCount: document.querySelector("#strategy-count"),
     strategyEmpty: document.querySelector("#strategy-empty"),
@@ -291,7 +278,6 @@
   }
 
   const formatRate = (rate) => `${rate.toFixed(2)}%`;
-  const formatOverallRate = (row) => `${(row.groupRate * row.itemRate / 100).toFixed(4)}%`;
   const normalize = (value) =>
     value
       .normalize("NFKC")
@@ -315,31 +301,30 @@
     suggestions: [],
   });
 
-  // 兩組欄位共用同一套自動完成，差別只在候選項目的過濾規則與選定後要重畫誰。
-  const createPropertySlot = (id) => ({
+  const createTargetSlot = (id, grade) => ({
     ...baseSlot(id),
-    idPrefix: "property",
-    getCandidates: getOwnedCandidates,
-    renderFeedback: (slot) => updateSlotFeedback(slot, slot.feedback),
-    onSelect: () => renderAnalysis(),
-  });
-
-  const createTargetSlot = (id) => ({
-    ...baseSlot(id),
+    grade,
     idPrefix: "target",
     getCandidates: getTargetCandidates,
     renderFeedback: (slot) => updateTargetFeedback(slot),
     onSelect: () => {
-      // 兩個欄位互相牽制（同群組不可並存），選定後兩邊的提示都要重算。
+      // 任一能力選定後，其他欄位的同群組候選能力必須立即排除。
       strategyTargetStates.forEach((current) => updateTargetFeedback(current));
       renderStrategy();
     },
   });
 
-  let nextPropertySlotId = 1;
-  let propertySlotStates = [createPropertySlot(nextPropertySlotId)];
-  const strategyTargetStates = [createTargetSlot("a"), createTargetSlot("b")];
-  const slotCollections = [() => propertySlotStates, () => strategyTargetStates];
+  // 釘選策略固定為 1 紫、1 藍、3 白；至少設定一個白字，其餘白字可留空。
+  const strategyTargetStates = [
+    createTargetSlot("purple", GRADE_HIGH),
+    createTargetSlot("blue", GRADE_INTERMEDIATE),
+    createTargetSlot("whiteA", GRADE_LOW),
+    createTargetSlot("whiteB", GRADE_LOW),
+    createTargetSlot("whiteC", GRADE_LOW),
+  ];
+  // 已確認的預設順序是先紫、再藍；仍保留切換功能供玩家比較其他兩釘組合。
+  const strategyPinnedIds = new Set(["purple", "blue"]);
+  const slotCollections = [() => strategyTargetStates];
 
   function addHighlightedText(container, text, tokens) {
     const usableTokens = [...new Set(tokens.filter(Boolean))]
@@ -542,13 +527,12 @@
   }
 
   const TAB_VIEWS = [
-    ["lookup", () => elements.lookupTab, () => elements.lookupPanel],
-    ["owned", () => elements.ownedTab, () => elements.ownedPanel],
     ["strategy", () => elements.strategyTab, () => elements.strategyPanel],
+    ["lookup", () => elements.lookupTab, () => elements.lookupPanel],
   ];
 
   function activateTab(tabName, shouldFocus = false) {
-    const activeName = TAB_VIEWS.some(([name]) => name === tabName) ? tabName : "lookup";
+    const activeName = TAB_VIEWS.some(([name]) => name === tabName) ? tabName : "strategy";
     closeAllAutocompletes();
 
     TAB_VIEWS.forEach(([name, getTab, getPanel]) => {
@@ -567,90 +551,25 @@
     return normalizedValue ? propertyLookup.get(normalizedValue) ?? null : null;
   }
 
-  function getSelectionValidation() {
-    const accepted = [];
-    const acceptedBySlot = new Map();
-    const rejectedBySlot = new Map();
-    const groupOwners = new Map();
-    let intermediateOwner = null;
-    let highOwner = null;
-
-    propertySlotStates.forEach((slot, index) => {
-      const row = resolveProperty(slot.value);
-      if (!row) return;
-
-      const owner = groupOwners.get(row.groupId);
-      if (owner) {
-        rejectedBySlot.set(slot.id, {
-          reason: "group",
-          row,
-          slotIndex: index + 1,
-          ownerIndex: owner.index + 1,
-        });
-        return;
-      }
-
-      if (row.grade === GRADE_INTERMEDIATE && intermediateOwner) {
-        rejectedBySlot.set(slot.id, {
-          reason: "intermediate",
-          row,
-          slotIndex: index + 1,
-          ownerIndex: intermediateOwner.index + 1,
-        });
-        return;
-      }
-
-      if (row.grade === GRADE_HIGH && highOwner) {
-        rejectedBySlot.set(slot.id, {
-          reason: "high",
-          row,
-          slotIndex: index + 1,
-          ownerIndex: highOwner.index + 1,
-        });
-        return;
-      }
-
-      const record = { slot, row, index };
-      groupOwners.set(row.groupId, record);
-      if (row.grade === GRADE_INTERMEDIATE) intermediateOwner = record;
-      if (row.grade === GRADE_HIGH) highOwner = record;
-      accepted.push(record);
-      acceptedBySlot.set(slot.id, record);
-    });
-
-    return { accepted, acceptedBySlot, rejectedBySlot };
-  }
-
-  function getAcceptedRows(excludedSlotId = null) {
-    return getSelectionValidation().accepted
-      .filter((record) => record.slot.id !== excludedSlotId)
-      .map((record) => record.row);
-  }
-
-  // 現有屬性分析：排除已占用的群組，以及已被占用的中級／高級名額。
-  function getOwnedCandidates(slot) {
-    const selectedRows = getAcceptedRows(slot.id);
-    const selectedGroups = new Set(selectedRows.map((row) => row.groupId));
-    const hasIntermediate = selectedRows.some((row) => row.grade === GRADE_INTERMEDIATE);
-    const hasHigh = selectedRows.some((row) => row.grade === GRADE_HIGH);
-
-    return rows.filter((row) => {
-      if (selectedGroups.has(row.groupId)) return false;
-      if (row.grade === GRADE_INTERMEDIATE && hasIntermediate) return false;
-      if (row.grade === GRADE_HIGH && hasHigh) return false;
-      return true;
-    });
-  }
-
-  // 釘選策略：目標只能是低級（白字），且兩個目標不能同群組（群組不可重複抽取）。
+  // 紫字限群組19；藍字與白字都列出該等級的完整能力，推薦項目僅加上標記。
+  // 所有欄位都會排除其他已選欄位占用的群組。
   function getTargetCandidates(slot) {
-    const takenGroups = new Set(strategyTargetStates
+    const occupiedGroups = new Set(strategyTargetStates
       .filter((current) => current.id !== slot.id)
       .map((current) => resolveProperty(current.value))
       .filter(Boolean)
       .map((row) => row.groupId));
 
-    return rows.filter((row) => row.grade === GRADE_LOW && !takenGroups.has(row.groupId));
+    return rows.filter((row) => {
+      if (occupiedGroups.has(row.groupId)) return false;
+      if (slot.grade === GRADE_HIGH) {
+        return row.groupId === HIGH_GRADE_GROUP_ID && row.grade === GRADE_HIGH;
+      }
+      if (slot.grade === GRADE_INTERMEDIATE) {
+        return row.grade === GRADE_INTERMEDIATE;
+      }
+      return row.grade === GRADE_LOW;
+    });
   }
 
   function getAutocompleteMatches(slot) {
@@ -689,10 +608,11 @@
         || left.row.groupId - right.row.groupId
         || left.row.item.localeCompare(right.row.item, "zh-Hant"));
 
-    return {
-      total: matches.length,
-      visible: matches.slice(0, MAX_AUTOCOMPLETE_RESULTS),
-    };
+    // 藍字與白字欄位依需求顯示排除後的完整列表；其他自動完成仍限制首批筆數。
+    const visible = slot.grade !== GRADE_HIGH
+      ? matches
+      : matches.slice(0, MAX_AUTOCOMPLETE_RESULTS);
+    return { total: matches.length, visible };
   }
 
   function closeAutocomplete(slot) {
@@ -807,10 +727,10 @@
       });
     }
 
-    if (matches.total > MAX_AUTOCOMPLETE_RESULTS) {
+    if (matches.total > matches.visible.length) {
       const footer = document.createElement("p");
       footer.className = "autocomplete-footer";
-      footer.textContent = `顯示前 ${MAX_AUTOCOMPLETE_RESULTS} 筆，共 ${matches.total} 筆；請輸入更多關鍵字縮小範圍。`;
+      footer.textContent = `顯示前 ${matches.visible.length} 筆，共 ${matches.total} 筆；請輸入更多關鍵字縮小範圍。`;
       content.append(footer);
     }
 
@@ -868,387 +788,102 @@
     if (event.key === "Tab") closeAutocomplete(slot);
   }
 
-  function updateSlotFeedback(slot, feedback, validation = getSelectionValidation()) {
-    const value = slot.value.trim();
-    const matchedProperty = resolveProperty(value);
-    feedback.className = "property-slot__feedback";
-
-    if (!value) {
-      feedback.textContent = "請輸入關鍵字，並從建議清單選擇完整屬性。";
-      return;
-    }
-
-    if (!matchedProperty) {
-      feedback.textContent = "尚未找到完整屬性，請繼續輸入或從清單選取。";
-      feedback.classList.add("is-invalid");
-      return;
-    }
-
-    const rejection = validation.rejectedBySlot.get(slot.id);
-    if (rejection) {
-      if (rejection.reason === "intermediate") {
-        feedback.textContent = `中級能力已由現有屬性 ${rejection.ownerIndex} 占用；每顆召喚石只能有 1 個中級能力，此輸入不會加入分析。`;
-      } else if (rejection.reason === "high") {
-        feedback.textContent = `高級能力已由現有屬性 ${rejection.ownerIndex} 占用；每顆召喚石只能有 1 個高級能力，此輸入不會加入分析。`;
-      } else {
-        feedback.textContent = `群組 ${matchedProperty.groupId} 已由現有屬性 ${rejection.ownerIndex} 占用，此輸入不會加入分析。`;
-      }
-      feedback.classList.add("is-invalid");
-      return;
-    }
-
-    const gradeLabel = matchedProperty.grade === GRADE_HIGH
-      ? "高級能力・301階以上必定出現"
-      : matchedProperty.grade === GRADE_INTERMEDIATE
-        ? "中級能力・31階以上必定出現"
-        : "低級能力";
-    const recommendedLabel = matchedProperty.recommended
-      ? `｜${getRecommendedLabel(matchedProperty)}`
-      : "";
-    feedback.textContent = `群組 ${matchedProperty.groupId}｜群組機率 ${formatRate(matchedProperty.groupRate)}｜群組內機率 ${formatRate(matchedProperty.itemRate)}｜${gradeLabel}${recommendedLabel}`;
-    feedback.classList.add("is-valid");
-  }
-
-  function renderPropertySlots() {
-    const fragment = document.createDocumentFragment();
-    let lastInput = null;
-
-    propertySlotStates.forEach((slot, index) => {
-      const container = document.createElement("div");
-      container.className = "property-slot";
-
-      const number = document.createElement("span");
-      number.className = "property-slot__number";
-      number.textContent = String(index + 1);
-
-      const field = document.createElement("div");
-      field.className = "property-slot__field";
-
-      const inputId = `property-input-${slot.id}`;
-      const feedbackId = `property-feedback-${slot.id}`;
-      const label = document.createElement("label");
-      label.htmlFor = inputId;
-      label.textContent = `現有屬性 ${index + 1}`;
-
-      const input = document.createElement("input");
-      input.id = inputId;
-      input.className = "property-input";
-      input.type = "text";
-      input.value = slot.value;
-      input.placeholder = "輸入屬性名稱，例如：暴擊傷害增加80-100%";
-      input.autocomplete = "off";
-      input.setAttribute("aria-describedby", feedbackId);
-      input.setAttribute("role", "combobox");
-      input.setAttribute("aria-autocomplete", "list");
-      input.setAttribute("aria-haspopup", "listbox");
-      input.setAttribute("aria-expanded", "false");
-
-      const combobox = document.createElement("div");
-      combobox.className = "property-combobox";
-      const listbox = document.createElement("div");
-      listbox.id = `property-listbox-${slot.id}`;
-      listbox.className = "autocomplete-menu";
-      listbox.setAttribute("role", "listbox");
-      listbox.setAttribute("aria-label", `現有屬性 ${index + 1} 搜尋結果`);
-      listbox.hidden = true;
-      input.setAttribute("aria-controls", listbox.id);
-
-      const feedback = document.createElement("p");
-      feedback.id = feedbackId;
-      updateSlotFeedback(slot, feedback);
-
-      slot.input = input;
-      slot.listbox = listbox;
-      slot.feedback = feedback;
-      slot.combobox = combobox;
-
-      input.addEventListener("input", () => {
-        slot.value = input.value;
-        slot.isOpen = true;
-        slot.activeIndex = -1;
-        updateSlotFeedback(slot, feedback);
-        renderAutocomplete(slot);
-        renderAnalysis();
-      });
-
-      input.addEventListener("focus", () => {
-        closeAllAutocompletes(slot.id);
-        slot.isOpen = true;
-        slot.activeIndex = -1;
-        renderAutocomplete(slot);
-      });
-
-      input.addEventListener("keydown", (event) => handleAutocompleteKeydown(event, slot));
-
-      const removeButton = document.createElement("button");
-      removeButton.className = "property-remove";
-      removeButton.type = "button";
-      removeButton.textContent = "移除";
-      removeButton.disabled = propertySlotStates.length === 1;
-      removeButton.setAttribute("aria-label", `移除現有屬性 ${index + 1}`);
-      removeButton.addEventListener("click", () => {
-        propertySlotStates = propertySlotStates.filter((currentSlot) => currentSlot.id !== slot.id);
-        renderPropertySlots();
-        renderAnalysis();
-      });
-
-      combobox.append(input, listbox);
-      field.append(label, combobox, feedback);
-      container.append(number, field, removeButton);
-      fragment.append(container);
-      lastInput = input;
-    });
-
-    elements.propertySlots.replaceChildren(fragment);
-    elements.addProperty.disabled = propertySlotStates.length >= 5;
-    elements.clearAnalysis.disabled = propertySlotStates.length === 1
-      && propertySlotStates[0].value.trim() === "";
-    return lastInput;
-  }
-
-  function createProbabilityRow(row) {
-    const tableRow = document.createElement("tr");
-    const itemCell = createCell("現有屬性");
-    applyAbilityGrade(itemCell, row);
-    itemCell.append(createAbilityContent(row));
-
-    const groupCell = createCell("群組");
-    groupCell.append(createGroupIdentity(row.groupId));
-
-    const groupRateCell = createCell("群組機率", "rate");
-    groupRateCell.textContent = formatRate(row.groupRate);
-
-    const itemRateCell = createCell("群組內機率", "rate");
-    itemRateCell.textContent = formatRate(row.itemRate);
-
-    const overallRateCell = createCell("綜合機率", "overall-rate");
-    overallRateCell.textContent = formatOverallRate(row);
-
-    tableRow.append(itemCell, groupCell, groupRateCell, itemRateCell, overallRateCell);
-    return tableRow;
-  }
-
-  function createBlockedGroupCard(groupId, selectedKeys) {
-    const groupRows = rowsByGroup.get(groupId) ?? [];
-    const card = document.createElement("article");
-    card.className = "blocked-group-card";
-
-    const header = document.createElement("header");
-    header.className = "blocked-group-card__header";
-    const title = document.createElement("h3");
-    title.textContent = groupId === HIGH_GRADE_GROUP_ID
-      ? `附加能力群組 ${groupId}・高級屬性`
-      : `附加能力群組 ${groupId}`;
-    const summary = document.createElement("p");
-    const guaranteeLabel = groupId === HIGH_GRADE_GROUP_ID
-      ? "301階以上必定出現｜"
-      : "";
-    summary.textContent = `${guaranteeLabel}群組機率 ${formatRate(GROUP_RATES[groupId - 1])}｜${groupRows.length} 個項目`;
-    header.append(title, summary);
-
-    const list = document.createElement("ul");
-    list.className = "blocked-list";
-
-    groupRows.forEach((row) => {
-      const isOwned = selectedKeys.has(row.key);
-      const item = document.createElement("li");
-      item.className = "blocked-item";
-
-      const name = document.createElement("span");
-      name.className = "blocked-item__name";
-      name.textContent = row.item;
-      applyAbilityGrade(name, row);
-      appendAbilityBadges(name, row);
-
-      const meta = document.createElement("span");
-      meta.className = "blocked-item__meta";
-      const rate = document.createElement("span");
-      rate.className = "rate";
-      rate.textContent = formatRate(row.itemRate);
-      const status = document.createElement("span");
-      status.className = `status-badge ${isOwned ? "status-badge--owned" : "status-badge--blocked"}`;
-      status.textContent = isOwned ? "現有屬性" : "不可再刷到";
-      meta.append(rate, status);
-
-      item.append(name, meta);
-      list.append(item);
-    });
-
-    card.append(header, list);
-    return card;
-  }
-
-  function createBlockedIntermediateCard(selectedIntermediate) {
-    const blockedRows = rows.filter((row) =>
-      row.grade === GRADE_INTERMEDIATE
-      && row.groupId !== selectedIntermediate.groupId);
-    const card = document.createElement("article");
-    card.className = "blocked-group-card blocked-group-card--intermediate";
-
-    const header = document.createElement("header");
-    header.className = "blocked-group-card__header";
-    const title = document.createElement("h3");
-    title.textContent = "跨群組中級能力・不可再刷到";
-    const blockedRecommended = blockedRows.filter((row) => row.recommended).length;
-    const summary = document.createElement("p");
-    summary.textContent = `已選 1 個中級能力｜另外排除 ${blockedRows.length} 個中級項目`
-      + (blockedRecommended === 0 ? "" : `（含 ${blockedRecommended} 個 ★ 推薦藍字）`);
-    header.append(title, summary);
-
-    const list = document.createElement("ul");
-    list.className = "blocked-list";
-
-    blockedRows.forEach((row) => {
-      const item = document.createElement("li");
-      item.className = "blocked-item";
-
-      const name = document.createElement("span");
-      name.className = "blocked-item__name";
-      name.textContent = row.item;
-      applyAbilityGrade(name, row);
-      appendAbilityBadges(name, row);
-
-      const meta = document.createElement("span");
-      meta.className = "blocked-item__meta";
-      const groupLabel = document.createElement("span");
-      groupLabel.className = "blocked-item__group";
-      groupLabel.textContent = `群組 ${row.groupId}`;
-      const rate = document.createElement("span");
-      rate.className = "rate";
-      rate.textContent = formatRate(row.itemRate);
-      const status = document.createElement("span");
-      status.className = "status-badge status-badge--blocked";
-      status.textContent = "中級已占用";
-      meta.append(groupLabel, rate, status);
-
-      item.append(name, meta);
-      list.append(item);
-    });
-
-    card.append(header, list);
-    return card;
-  }
-
-  function renderAnalysis() {
-    const validation = getSelectionValidation();
-    const selectedRows = validation.accepted.map((record) => record.row);
-    const selectedKeysByGroup = new Map();
-
-    propertySlotStates.forEach((slot) => {
-      if (slot.feedback) updateSlotFeedback(slot, slot.feedback, validation);
-    });
-
-    selectedRows.forEach((row) => {
-      if (!selectedKeysByGroup.has(row.groupId)) {
-        selectedKeysByGroup.set(row.groupId, new Set());
-      }
-      selectedKeysByGroup.get(row.groupId).add(row.key);
-    });
-
-    elements.selectionCount.textContent = `已選擇 ${selectedRows.length} / 5 個`;
-    elements.analysisEmpty.hidden = selectedRows.length !== 0;
-    elements.analysisTableFrame.hidden = selectedRows.length === 0;
-
-    const probabilityRows = document.createDocumentFragment();
-    selectedRows.forEach((row) => probabilityRows.append(createProbabilityRow(row)));
-    elements.selectedProbabilities.replaceChildren(probabilityRows);
-
-    const warnings = [...validation.rejectedBySlot.values()].map((rejection) => {
-      if (rejection.reason === "intermediate") {
-        return `現有屬性 ${rejection.slotIndex} 是中級能力，但中級能力已由現有屬性 ${rejection.ownerIndex} 占用，因此未加入分析。`;
-      }
-      if (rejection.reason === "high") {
-        return `現有屬性 ${rejection.slotIndex} 是高級能力，但高級能力已由現有屬性 ${rejection.ownerIndex} 占用，因此未加入分析。`;
-      }
-      return `現有屬性 ${rejection.slotIndex} 的群組 ${rejection.row.groupId} 已由現有屬性 ${rejection.ownerIndex} 占用，因此未加入分析。`;
-    });
-
-    elements.ruleWarning.hidden = warnings.length === 0;
-    elements.ruleWarning.textContent = warnings.join(" ");
-
-    const blockedCards = document.createDocumentFragment();
-    const selectedIntermediate = selectedRows.find((row) => row.grade === GRADE_INTERMEDIATE);
-    if (selectedIntermediate) {
-      blockedCards.append(createBlockedIntermediateCard(selectedIntermediate));
-    }
-    [...selectedKeysByGroup.entries()]
-      .sort(([groupA], [groupB]) => groupA - groupB)
-      .forEach(([groupId, selectedKeys]) => {
-        blockedCards.append(createBlockedGroupCard(groupId, selectedKeys));
-      });
-
-    elements.blockedGroups.replaceChildren(blockedCards);
-    const blockedCategoryCount = selectedKeysByGroup.size + (selectedIntermediate ? 1 : 0);
-    elements.blockedEmpty.hidden = blockedCategoryCount !== 0;
-    elements.blockedCount.textContent = `${blockedCategoryCount} 個分類`;
-    renderPropertySlotsState();
-  }
-
-  function renderPropertySlotsState() {
-    elements.addProperty.disabled = propertySlotStates.length >= 5;
-    elements.clearAnalysis.disabled = propertySlotStates.length === 1
-      && propertySlotStates[0].value.trim() === "";
-  }
-
-  function addPropertySlot() {
-    if (propertySlotStates.length >= 5) return;
-    closeAllAutocompletes();
-    nextPropertySlotId += 1;
-    propertySlotStates.push(createPropertySlot(nextPropertySlotId));
-    const lastInput = renderPropertySlots();
-    renderAnalysis();
-    if (lastInput) lastInput.focus();
-  }
-
-  function clearAnalysis() {
-    closeAllAutocompletes();
-    nextPropertySlotId += 1;
-    propertySlotStates = [createPropertySlot(nextPropertySlotId)];
-    const firstInput = renderPropertySlots();
-    renderAnalysis();
-    if (firstInput) firstInput.focus();
-  }
-
   // ---- 釘選策略評估 ----
-  // 模型：紫字固定來自群組19（命中想要的為 1/9），藍字在兩方案都全程釘住（共同項，可消去），
-  // 3 格白字近似為獨立抽取。完整推導與交叉點見 釘選策略分析.md。
-  const TARGET_LABELS = ["目標白字 1", "目標白字 2"];
-  const slotHitRate = (row) => row.groupRate * row.itemRate / 10000;
-  const missAll = (rate, slots) => Math.pow(1 - rate, slots);
-  // 階段2 單轉成功 ＝ 紫字中想要的(1/9) 且 2 格白字至少命中剩下那個目標
-  const stage2Rate = (rate) => (1 / 9) * (1 - missAll(rate, 2));
+  // 模型：1 紫（群組19指定內容）＋1 藍（任意中級能力）＋1～3 白（任意低級能力）。
+  // 任選兩個已設定欄位視為已釘住，精確計算其餘三個實際欄位的聯合機率。
+  const STRATEGY_FIELDS = [
+    {
+      id: "purple",
+      label: "1. 紫字目標能力（只限群組19）",
+      placeholder: "輸入紫字內容，從群組19的 9 個高級能力選擇",
+    },
+    {
+      id: "blue",
+      label: "2. 藍字能力",
+      placeholder: "輸入藍字內容（完整列表，★ 為推薦能力）",
+    },
+    {
+      id: "whiteA",
+      label: "3. 白字能力 1",
+      placeholder: "輸入白字內容（完整列表，★ 為推薦能力）",
+    },
+    {
+      id: "whiteB",
+      label: "4. 白字能力 2（選填）",
+      placeholder: "可留空；輸入後會一併納入計算",
+    },
+    {
+      id: "whiteC",
+      label: "5. 白字能力 3（選填）",
+      placeholder: "可留空；輸入後會一併納入計算",
+    },
+  ];
+  const STRATEGY_FIELD_LABELS = new Map([
+    ["purple", "紫字"],
+    ["blue", "藍字"],
+    ["whiteA", "白字1"],
+    ["whiteB", "白字2"],
+    ["whiteC", "白字3"],
+  ]);
   const formatRolls = (value) => Math.round(value).toLocaleString("en-US");
+  const formatPoints = (value) => `${Math.round(value).toLocaleString("en-US")} 點`;
+  const formatProbability = (rate) => {
+    const percent = rate * 100;
+    return `${percent.toFixed(percent < 0.01 ? 6 : 4)}%`;
+  };
 
-  function evaluatePinStrategies(rateA, rateB) {
-    const hard = Math.min(rateA, rateB);
-    const easy = Math.max(rateA, rateB);
+  function getRowsForGrade(groupId, grade) {
+    return (rowsByGroup.get(groupId) ?? []).filter((row) => row.grade === grade);
+  }
 
-    // 方案a：釘藍+紫，重骰 3 白，單轉要同時湊到兩個目標（排容原理）
-    const bothPerRoll = 1 - missAll(rateA, 3) - missAll(rateB, 3) + missAll(rateA + rateB, 3);
-    const hardOnly = 1 - missAll(hard, 3) - bothPerRoll;
-    const easyOnly = 1 - missAll(easy, 3) - bothPerRoll;
-    const noneHit = 1 - bothPerRoll - hardOnly - easyOnly;
+  function getItemRateInGrade(row) {
+    const gradeRows = getRowsForGrade(row.groupId, row.grade);
+    const total = gradeRows.reduce((sum, row) => sum + row.itemRate, 0);
+    return total > 0 ? row.itemRate / total : 0;
+  }
 
-    // 階段2 的成本由「還沒到手的那個目標」決定
-    const costWhenHardBanked = 1 / stage2Rate(easy);
-    const costWhenEasyBanked = 1 / stage2Rate(hard);
+  function getConditionalGroupRate(groupId, grade, excludedGroups) {
+    const available = groups.filter((currentGroup) =>
+      !excludedGroups.has(currentGroup.id)
+      && getRowsForGrade(currentGroup.id, grade).length > 0);
+    const total = available.reduce((sum, currentGroup) => sum + currentGroup.rate, 0);
+    const target = available.find((currentGroup) => currentGroup.id === groupId);
+    return target && total > 0 ? target.rate / total : 0;
+  }
 
-    const planA = 1 / bothPerRoll;
-    const bankFirst =
-      (1 + hardOnly * costWhenHardBanked + easyOnly * costWhenEasyBanked) / (1 - noneHit);
-    const bankHard = (1 + hardOnly * costWhenHardBanked) / (1 - easyOnly - noneHit);
-    const preferBankHard = bankHard < bankFirst;
-    const planB = preferBankHard ? bankHard : bankFirst;
+  // 白字欄位沒有位置差異：指定能力可出現在任一未釘白字格。
+  // 只設定兩個白字時，剩下的白字格視為不限能力，但它抽到的群組仍會排除後續群組。
+  function getWhiteTargetSetRate(targetRows, usedGroups, slotsLeft) {
+    if (targetRows.length === 0) return 1;
+    if (slotsLeft < targetRows.length || slotsLeft <= 0) return 0;
 
-    return {
-      bothPerRoll,
-      planA,
-      bankFirst,
-      bankHard,
-      planB,
-      preferBankHard,
-      recommended: planA < planB ? "a" : "b",
-    };
+    const availableGroups = groups.filter((currentGroup) =>
+      !usedGroups.has(currentGroup.id)
+      && getRowsForGrade(currentGroup.id, GRADE_LOW).length > 0);
+    const totalGroupRate = availableGroups.reduce((sum, currentGroup) => sum + currentGroup.rate, 0);
+    if (totalGroupRate <= 0) return 0;
+
+    let result = 0;
+    availableGroups.forEach((currentGroup) => {
+      const groupRate = currentGroup.rate / totalGroupRate;
+      const targetIndex = targetRows.findIndex((row) => row.groupId === currentGroup.id);
+      const nextUsed = new Set(usedGroups);
+      nextUsed.add(currentGroup.id);
+
+      if (targetIndex >= 0) {
+        // 抽到目標群組但沒有命中指定內容時，該群組已被占用，之後不可能補回目標。
+        const target = targetRows[targetIndex];
+        const nextTargets = targetRows.filter((_, index) => index !== targetIndex);
+        result += groupRate
+          * getItemRateInGrade(target)
+          * getWhiteTargetSetRate(nextTargets, nextUsed, slotsLeft - 1);
+        return;
+      }
+
+      // 非目標群組中的任何低級能力都可接受，項目機率合計為 100%。
+      result += groupRate * getWhiteTargetSetRate(targetRows, nextUsed, slotsLeft - 1);
+    });
+    return result;
   }
 
   function updateTargetFeedback(slot) {
@@ -1260,43 +895,102 @@
     feedback.className = "property-slot__feedback";
 
     if (!value) {
-      feedback.textContent = "請輸入關鍵字，並從建議清單選擇白字目標。";
+      feedback.textContent = slot.grade === GRADE_HIGH
+        ? "請輸入紫字內容，並從群組19的建議清單選取。"
+        : slot.grade === GRADE_INTERMEDIATE
+          ? "請從全部藍字能力中選擇；★ 只代表推薦標記。"
+          : slot.id !== "whiteA"
+            ? "選填：可從全部白字能力中選擇，★ 代表推薦能力。"
+            : "請從全部白字能力中選擇；★ 只代表推薦標記。";
       return;
     }
-
     if (!matched) {
       feedback.textContent = "尚未找到完整屬性，請繼續輸入或從清單選取。";
       feedback.classList.add("is-invalid");
       return;
     }
-
-    if (matched.grade !== GRADE_LOW) {
-      feedback.textContent =
-        `「${getGradeLabel(matched)}」能力不能當作白字目標；此情境的紫字與藍字已經固定。`;
+    const isValidHigh = slot.grade === GRADE_HIGH
+      && matched.groupId === HIGH_GRADE_GROUP_ID
+      && matched.grade === GRADE_HIGH;
+    const isValidBlue = slot.grade === GRADE_INTERMEDIATE
+      && matched.grade === GRADE_INTERMEDIATE;
+    const isValidWhite = slot.grade === GRADE_LOW && matched.grade === GRADE_LOW;
+    if (!isValidHigh && !isValidBlue && !isValidWhite) {
+      feedback.textContent = slot.grade === GRADE_HIGH
+        ? "紫字目標只允許群組19的高級能力。"
+        : slot.grade === GRADE_INTERMEDIATE
+          ? "藍字目標只允許中級能力；推薦與非推薦能力皆可選。"
+          : "白字目標只允許低級能力；推薦與非推薦能力皆可選。";
       feedback.classList.add("is-invalid");
       return;
     }
 
-    const otherSlot = strategyTargetStates.find((current) => current.id !== slot.id);
-    const otherRow = otherSlot ? resolveProperty(otherSlot.value) : null;
-    if (otherRow && otherRow.groupId === matched.groupId) {
-      feedback.textContent =
-        `群組 ${matched.groupId} 已被另一個目標占用；群組不可重複抽取，兩個目標不可能同時存在。`;
+    const groupOwner = strategyTargetStates.find((current) => {
+      if (current.id === slot.id) return false;
+      return resolveProperty(current.value)?.groupId === matched.groupId;
+    });
+    if (groupOwner) {
+      feedback.textContent = `群組${matched.groupId}已被「${STRATEGY_FIELD_LABELS.get(groupOwner.id)}」占用，請選擇其他群組的能力。`;
       feedback.classList.add("is-invalid");
       return;
     }
 
-    feedback.textContent = `群組 ${matched.groupId}｜群組機率 ${formatRate(matched.groupRate)}`
-      + `｜群組內機率 ${formatRate(matched.itemRate)}｜每格命中率 ${formatOverallRate(matched)}`
-      + (matched.recommended ? `｜${getRecommendedLabel(matched)}` : "");
+    const itemRate = getItemRateInGrade(matched);
+    feedback.textContent = matched.grade === GRADE_HIGH
+      ? `群組19｜指定能力命中率 ${formatProbability(itemRate)}｜高級・301階以上必定出現`
+      : `群組${matched.groupId}｜群組機率 ${formatRate(matched.groupRate)}`
+        + `｜群組內指定能力命中率 ${formatProbability(itemRate)}`;
     feedback.classList.add("is-valid");
   }
 
   function getStrategyTargets() {
-    const picked = strategyTargetStates.map((slot) => resolveProperty(slot.value));
-    if (picked.some((row) => !row || row.grade !== GRADE_LOW)) return null;
-    if (picked[0].groupId === picked[1].groupId) return null;
-    return picked;
+    const purple = resolveProperty(strategyTargetStates[0].value);
+    const blue = resolveProperty(strategyTargetStates[1].value);
+    const whiteSlots = strategyTargetStates.slice(2).map((slot) => ({
+      fieldId: slot.id,
+      hasValue: slot.value.trim() !== "",
+      row: resolveProperty(slot.value),
+    }));
+    const whites = whiteSlots.filter((entry) => entry.row);
+
+    if (!purple || purple.groupId !== HIGH_GRADE_GROUP_ID || purple.grade !== GRADE_HIGH) return null;
+    if (!blue || blue.grade !== GRADE_INTERMEDIATE) return null;
+    // 有輸入但未匹配完整能力時不能忽略，避免以錯誤的四格資料進行試算。
+    if (whiteSlots.some((entry) => entry.hasValue && !entry.row)) return null;
+    if (whites.length < 1 || whites.some((entry) => entry.row.grade !== GRADE_LOW)) return null;
+
+    const configured = [
+      { fieldId: "purple", row: purple },
+      { fieldId: "blue", row: blue },
+      ...whites,
+    ];
+    if (new Set(configured.map((entry) => entry.row.groupId)).size !== configured.length) return null;
+    if (strategyPinnedIds.size !== 2) return null;
+    if ([...strategyPinnedIds].some((fieldId) =>
+      !configured.some((entry) => entry.fieldId === fieldId))) return null;
+
+    return { purple, blue, whites };
+  }
+
+  function getConfiguredStrategyCount() {
+    return strategyTargetStates.filter((slot) => {
+      const row = resolveProperty(slot.value);
+      if (!row) return false;
+      if (slot.grade === GRADE_HIGH) {
+        return row.groupId === HIGH_GRADE_GROUP_ID && row.grade === GRADE_HIGH;
+      }
+      if (slot.grade === GRADE_INTERMEDIATE) {
+        return row.grade === GRADE_INTERMEDIATE;
+      }
+      return row.grade === GRADE_LOW;
+    }).length;
+  }
+
+  function hasStrategyGroupClash() {
+    const selected = strategyTargetStates
+      .map((slot) => resolveProperty(slot.value)?.groupId)
+      .filter(Boolean);
+    return new Set(selected).size !== selected.length;
   }
 
   function createStrategyEmptyState(chosenCount, hasGroupClash) {
@@ -1305,11 +999,14 @@
     const detail = document.createElement("p");
 
     if (hasGroupClash) {
-      title.textContent = "兩個目標在同一個群組";
-      detail.textContent = "群組不可重複抽取，這兩個能力不可能同時出現在一顆召喚石上，請換掉其中一個。";
+      title.textContent = "藍字與白字出現重複群組";
+      detail.textContent = "同一顆召喚石的群組不可重複，請更換衝突的群組。";
+    } else if (strategyPinnedIds.size !== 2) {
+      title.textContent = `請設定 2 個釘選欄位（目前 ${strategyPinnedIds.size} 個）`;
+      detail.textContent = "先按欄位右側的「設為釘選」，再計算其餘 3 格同時達成的機率。";
     } else {
-      title.textContent = `尚未選滿 2 個目標（已選 ${chosenCount} 個）`;
-      detail.textContent = "兩個白字目標都選好後，這裡會列出兩種釘法的單轉成功率與期望轉數。";
+      title.textContent = `至少需要 3 格目標（已設定 ${chosenCount} 格）`;
+      detail.textContent = "請選擇群組19紫字、1 個藍字，以及至少 1 個白字能力；另外 2 個白字可以留空。";
     }
 
     const fragment = document.createDocumentFragment();
@@ -1317,77 +1014,67 @@
     return fragment;
   }
 
-  function createStrategyVerdict(result, harder, easier) {
-    const verdict = document.createElement("div");
-    verdict.className = "strategy-verdict";
+  function calculatePinnedStrategy(configuration) {
+    const { purple, blue, whites } = configuration;
+    const usedGroups = new Set();
 
-    const best = result.recommended === "a" ? result.planA : result.planB;
-    const worst = result.recommended === "a" ? result.planB : result.planA;
+    if (strategyPinnedIds.has("blue")) usedGroups.add(blue.groupId);
+    whites.forEach(({ fieldId, row }) => {
+      if (strategyPinnedIds.has(fieldId)) usedGroups.add(row.groupId);
+    });
 
-    const badge = document.createElement("p");
-    badge.className = "strategy-verdict__badge";
-    badge.textContent = result.recommended === "a"
-      ? "建議：方案 a — 釘住藍字 + 紫字"
-      : "建議：方案 b — 釘住藍字 + 已到手的白字，放掉紫字";
-
-    const headline = document.createElement("p");
-    headline.className = "strategy-verdict__headline";
-    headline.textContent = `期望 ${formatRolls(best)} 轉完成，`
-      + `比另一個方案的 ${formatRolls(worst)} 轉快 ${(worst / best).toFixed(1)} 倍`;
-
-    verdict.append(badge, headline);
-
-    if (result.recommended === "b") {
-      const policy = document.createElement("p");
-      policy.className = "strategy-verdict__policy";
-      policy.textContent = result.preferBankHard
-        ? `落袋政策：只釘難抽的那個 — 階段 1 專心等「${harder.item}」再釘住，`
-          + `把比較好抽的「${easier.item}」留到階段 2。`
-        : "落袋政策：先到先釘 — 兩個目標命中率接近，中哪個就釘哪個，硬等特定的那個只是浪費轉數。";
-      verdict.append(policy);
+    let purpleRate = 1;
+    if (!strategyPinnedIds.has("purple")) {
+      purpleRate = getItemRateInGrade(purple);
     }
 
-    return verdict;
+    let blueRate = 1;
+    if (!strategyPinnedIds.has("blue")) {
+      blueRate = getConditionalGroupRate(blue.groupId, GRADE_INTERMEDIATE, usedGroups)
+        * getItemRateInGrade(blue);
+      // 藍字先抽；成功抽到後，其群組會排除後續白字。
+      usedGroups.add(blue.groupId);
+    }
+
+    const rollingWhites = whites.filter(({ fieldId }) => !strategyPinnedIds.has(fieldId));
+    const pinnedWhiteCount = whites.filter(({ fieldId }) => strategyPinnedIds.has(fieldId)).length;
+    const rollingWhiteSlotCount = 3 - pinnedWhiteCount;
+    const whiteRate = getWhiteTargetSetRate(
+      rollingWhites.map(({ row }) => row),
+      usedGroups,
+      rollingWhiteSlotCount,
+    );
+    const perRoll = purpleRate * blueRate * whiteRate;
+
+    return {
+      purpleRate,
+      blueRate,
+      whiteRate,
+      perRoll,
+      expectedRolls: perRoll > 0 ? 1 / perRoll : Number.POSITIVE_INFINITY,
+      expectedCost: perRoll > 0 ? 5000 / perRoll : Number.POSITIVE_INFINITY,
+      rollingWhites,
+      rollingWhiteSlotCount,
+    };
   }
 
-  function createStrategyRow(label, perRoll, rolls, isBest) {
-    const tableRow = document.createElement("tr");
-    if (isBest) tableRow.className = "is-best";
-
-    const planCell = createCell("方案");
-    planCell.textContent = label;
-
-    const perRollCell = createCell("單轉成功率", "rate");
-    perRollCell.textContent = perRoll;
-
-    const rollsCell = createCell("期望轉數", "rate");
-    rollsCell.textContent = `${formatRolls(rolls)} 轉`;
-
-    tableRow.append(planCell, perRollCell, rollsCell);
-    return tableRow;
-  }
-
-  function createStrategyTargetRow(row) {
-    const tableRow = document.createElement("tr");
-
-    const itemCell = createCell("目標");
-    applyAbilityGrade(itemCell, row);
-    itemCell.append(createAbilityContent(row));
-
-    const groupCell = createCell("群組");
-    groupCell.textContent = `群組 ${row.groupId}`;
-
-    const groupRateCell = createCell("群組機率", "rate");
-    groupRateCell.textContent = formatRate(row.groupRate);
-
-    const itemRateCell = createCell("群組內機率", "rate");
-    itemRateCell.textContent = formatRate(row.itemRate);
-
-    const hitCell = createCell("每格命中率", "rate");
-    hitCell.textContent = formatOverallRate(row);
-
-    tableRow.append(itemCell, groupCell, groupRateCell, itemRateCell, hitCell);
-    return tableRow;
+  function createStrategyPinButton(fieldId) {
+    const isPinned = strategyPinnedIds.has(fieldId);
+    const targetState = strategyTargetStates.find((slot) => slot.id === fieldId);
+    const hasConfiguredTarget = Boolean(targetState && resolveProperty(targetState.value));
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `strategy-pin-toggle${isPinned ? " is-pinned" : ""}`;
+    button.textContent = isPinned ? "已釘選" : "設為釘選";
+    button.setAttribute("aria-pressed", String(isPinned));
+    button.disabled = !isPinned && (strategyPinnedIds.size >= 2 || !hasConfiguredTarget);
+    button.addEventListener("click", () => {
+      if (isPinned) strategyPinnedIds.delete(fieldId);
+      else if (strategyPinnedIds.size < 2) strategyPinnedIds.add(fieldId);
+      renderStrategyTargets();
+      renderStrategy();
+    });
+    return button;
   }
 
   function createStrategyTable(caption, headings, bodyRows) {
@@ -1416,12 +1103,41 @@
     return frame;
   }
 
+  function createStrategyCalculationRow(label, condition, rate, isTotal = false) {
+    const row = document.createElement("tr");
+    if (isTotal) row.className = "is-best";
+    const labelCell = createCell("計算項目");
+    labelCell.textContent = label;
+    const conditionCell = createCell("目標條件");
+    conditionCell.textContent = condition;
+    const rateCell = createCell("條件機率", "rate");
+    rateCell.textContent = formatProbability(rate);
+    row.append(labelCell, conditionCell, rateCell);
+    return row;
+  }
+
+  function createStrategyConfigurationRow(label, target, fieldId) {
+    const row = document.createElement("tr");
+    const fieldCell = createCell("欄位");
+    fieldCell.textContent = label;
+    const targetCell = createCell("目標");
+    targetCell.textContent = target;
+    const stateCell = createCell("狀態");
+    stateCell.textContent = strategyPinnedIds.has(fieldId) ? "已釘選・視為100%" : "本輪重骰";
+    row.append(fieldCell, targetCell, stateCell);
+    return row;
+  }
+
   function renderStrategyTargets() {
     const fragment = document.createDocumentFragment();
-
     strategyTargetStates.forEach((slot, index) => {
+      const definition = STRATEGY_FIELDS[index];
       const container = document.createElement("div");
-      container.className = "property-slot";
+      const gradeClass = slot.grade === GRADE_HIGH
+        ? "purple"
+        : slot.grade === GRADE_INTERMEDIATE ? "blue" : "white";
+      container.className = `property-slot strategy-slot strategy-slot--${gradeClass}`
+        + (strategyPinnedIds.has(slot.id) ? " is-pinned" : "");
 
       const number = document.createElement("span");
       number.className = "property-slot__number";
@@ -1429,19 +1145,18 @@
 
       const field = document.createElement("div");
       field.className = "property-slot__field";
-
       const inputId = `target-input-${slot.id}`;
       const feedbackId = `target-feedback-${slot.id}`;
       const label = document.createElement("label");
       label.htmlFor = inputId;
-      label.textContent = TARGET_LABELS[index];
+      label.textContent = definition.label;
 
       const input = document.createElement("input");
       input.id = inputId;
       input.className = "property-input";
       input.type = "text";
       input.value = slot.value;
-      input.placeholder = "輸入白字屬性，或打「推薦白字」看 23 個推薦目標";
+      input.placeholder = definition.placeholder;
       input.autocomplete = "off";
       input.setAttribute("aria-describedby", feedbackId);
       input.setAttribute("role", "combobox");
@@ -1455,13 +1170,12 @@
       listbox.id = `target-listbox-${slot.id}`;
       listbox.className = "autocomplete-menu";
       listbox.setAttribute("role", "listbox");
-      listbox.setAttribute("aria-label", `${TARGET_LABELS[index]} 搜尋結果`);
+      listbox.setAttribute("aria-label", `${definition.label}搜尋結果`);
       listbox.hidden = true;
       input.setAttribute("aria-controls", listbox.id);
 
       const feedback = document.createElement("p");
       feedback.id = feedbackId;
-
       slot.input = input;
       slot.listbox = listbox;
       slot.feedback = feedback;
@@ -1476,19 +1190,17 @@
         renderAutocomplete(slot);
         renderStrategy();
       });
-
       input.addEventListener("focus", () => {
         closeAllAutocompletes(slot.id);
         slot.isOpen = true;
         slot.activeIndex = -1;
         renderAutocomplete(slot);
       });
-
       input.addEventListener("keydown", (event) => handleAutocompleteKeydown(event, slot));
 
       combobox.append(input, listbox);
       field.append(label, combobox, feedback);
-      container.append(number, field);
+      container.append(number, field, createStrategyPinButton(slot.id));
       fragment.append(container);
     });
 
@@ -1496,68 +1208,99 @@
   }
 
   function renderStrategy() {
-    const picked = strategyTargetStates.map((slot) => resolveProperty(slot.value));
-    const chosenCount = picked.filter((row) => row && row.grade === GRADE_LOW).length;
-    elements.strategyCount.textContent = `已選擇 ${chosenCount} / 2 個`;
+    const chosenCount = getConfiguredStrategyCount();
+    elements.strategyCount.textContent = `已設定 ${chosenCount} / 5 格（至少 3 格）｜已釘選 ${strategyPinnedIds.size} / 2 格`;
 
     const targets = getStrategyTargets();
     if (!targets) {
-      const hasGroupClash = chosenCount === 2 && picked[0].groupId === picked[1].groupId;
-      elements.strategyEmpty.replaceChildren(createStrategyEmptyState(chosenCount, hasGroupClash));
+      elements.strategyEmpty.replaceChildren(createStrategyEmptyState(chosenCount, hasStrategyGroupClash()));
       elements.strategyEmpty.hidden = false;
       elements.strategyResult.hidden = true;
       elements.strategyResult.replaceChildren();
       return;
     }
 
-    const [first, second] = targets;
-    const rateFirst = slotHitRate(first);
-    const rateSecond = slotHitRate(second);
-    const result = evaluatePinStrategies(rateFirst, rateSecond);
-    const harder = rateFirst <= rateSecond ? first : second;
-    const easier = rateFirst <= rateSecond ? second : first;
+    const result = calculatePinnedStrategy(targets);
+    const pinnedLabels = [...strategyPinnedIds].map((id) => STRATEGY_FIELD_LABELS.get(id)).join("＋");
+    const verdict = document.createElement("div");
+    verdict.className = "strategy-verdict";
+    const badge = document.createElement("p");
+    badge.className = "strategy-verdict__badge";
+    badge.textContent = `目前釘選：${pinnedLabels}`;
+    const headline = document.createElement("p");
+    headline.className = "strategy-verdict__headline";
+    headline.textContent = `單轉達成率 ${formatProbability(result.perRoll)}`
+      + `｜期望 ${formatRolls(result.expectedRolls)} 轉｜${formatPoints(result.expectedCost)}`;
+    const policy = document.createElement("p");
+    policy.className = "strategy-verdict__policy";
+    const hasPurpleAndBluePinned = strategyPinnedIds.has("purple")
+      && strategyPinnedIds.has("blue");
+    const hasBlueAndWhitePinned = strategyPinnedIds.has("blue")
+      && targets.whites.some(({ fieldId }) => strategyPinnedIds.has(fieldId));
+    if (hasPurpleAndBluePinned) {
+      policy.textContent = "過渡狀態：尚未取得指定白字時可先保留紫＋藍；任一指定白字出現後，通常應改釘藍＋白，避免要求多個指定白字同轉出現。";
+    } else if (hasBlueAndWhitePinned) {
+      policy.textContent = "落袋狀態：已取得指定白字後保留藍＋白，再重洗較容易回來的紫字與其餘目標；白字難度不同時，通常優先釘較難抽者。";
+    } else {
+      policy.textContent = "自訂釘法：此處只計算目前兩格已釘後的終局成本，不代表從零開始的完整路線；請連同取得釘選內容的前置成本一起判斷。";
+    }
+    verdict.append(badge, headline, policy);
 
-    const comparison = createStrategyTable(
-      "兩種釘法的單轉成功率與期望轉數",
-      ["方案", "單轉成功率", "期望轉數"],
+    const unrestrictedWhiteCount = result.rollingWhiteSlotCount - result.rollingWhites.length;
+    const whiteCondition = result.rollingWhites.length > 0
+      ? result.rollingWhites.map(({ row }) => `${row.item}（群組${row.groupId}）`).join("、")
+        + (unrestrictedWhiteCount > 0 ? `；另 ${unrestrictedWhiteCount} 格不限` : "")
+      : unrestrictedWhiteCount > 0
+        ? `已設定白字皆固定；另 ${unrestrictedWhiteCount} 格不限`
+        : "白字皆已固定";
+    const calculationTable = createStrategyTable(
+      "其餘 3 格的條件機率（依藍字先抽、白字群組不重複精確計算）",
+      ["計算項目", "目標條件", "條件機率"],
       [
-        createStrategyRow(
-          "方案 a：釘藍字＋紫字，重骰 3 個白字",
-          `${(result.bothPerRoll * 100).toFixed(4)}%`,
-          result.planA,
-          result.recommended === "a",
+        createStrategyCalculationRow(
+          "紫字",
+          strategyPinnedIds.has("purple") ? "已釘選" : targets.purple.item,
+          result.purpleRate,
         ),
-        createStrategyRow(
-          "方案 b：先到先釘（中哪個目標就釘哪個）",
-          "分兩階段，見說明",
-          result.bankFirst,
-          result.recommended === "b" && !result.preferBankHard,
+        createStrategyCalculationRow(
+          "藍字",
+          strategyPinnedIds.has("blue") ? "已釘選" : `${targets.blue.item}（群組${targets.blue.groupId}）`,
+          result.blueRate,
         ),
-        createStrategyRow(
-          "方案 b：只釘難抽的那個",
-          "分兩階段，見說明",
-          result.bankHard,
-          result.recommended === "b" && result.preferBankHard,
+        createStrategyCalculationRow(
+          "未釘白字聯合",
+          whiteCondition,
+          result.whiteRate,
         ),
+        createStrategyCalculationRow("整體", "其餘3格同一轉完成所有未釘目標", result.perRoll, true),
       ],
     );
 
-    const targetTable = createStrategyTable(
-      "兩個目標的群組機率、群組內機率與每格命中率",
-      ["目標", "群組", "群組機率", "群組內機率", "每格命中率"],
-      targets.map((row) => createStrategyTargetRow(row)),
+    const configurationTable = createStrategyTable(
+      `${targets.whites.length + 2} 格目標與釘選狀態`,
+      ["欄位", "目標", "狀態"],
+      [
+        createStrategyConfigurationRow("紫字", targets.purple.item, "purple"),
+        createStrategyConfigurationRow("藍字", `${targets.blue.item}・群組 ${targets.blue.groupId}`, "blue"),
+        ...targets.whites.map(({ fieldId, row }) => createStrategyConfigurationRow(
+          STRATEGY_FIELD_LABELS.get(fieldId),
+          `${row.item}・群組 ${row.groupId}`,
+          fieldId,
+        )),
+      ],
     );
 
     const note = document.createElement("p");
     note.className = "strategy-note";
-    note.textContent = "方案 b 的階段 1 與方案 a 是同一個動作（釘藍字＋紫字、重骰 3 個白字），"
-      + "只是中 1 個目標就落袋、改打階段 2；因此方案 b 是方案 a 的超集，期望轉數不可能更差。"
-      + "階段 1 若一轉同時中 2 個目標，直接收工。";
+    note.textContent = "期望花費只計算目前兩格已釘後的終局階段：每轉 5,000 點 ÷ 單轉達成率；"
+      + "不包含取得目前釘選內容及中途換釘的前置成本，不同釘法不一定具有相同起跑點。每格都以指定能力的群組內機率計算，"
+      + "多個未釘白字可用任意排列命中所選能力；未設定的白字格不限能力，"
+      + "但仍會依群組不可重複規則納入機率。";
 
     elements.strategyResult.replaceChildren(
-      createStrategyVerdict(result, harder, easier),
-      comparison,
-      targetTable,
+      verdict,
+      calculationTable,
+      configurationTable,
       note,
     );
     elements.strategyResult.hidden = false;
@@ -1580,9 +1323,6 @@
       activateTab(TAB_VIEWS[next][0], true);
     });
   });
-  elements.addProperty.addEventListener("click", addPropertySlot);
-  elements.clearAnalysis.addEventListener("click", clearAnalysis);
-
   document.addEventListener("keydown", (event) => {
     const target = event.target;
     const isTyping = target instanceof HTMLInputElement
@@ -1606,10 +1346,8 @@
     if (!clickedInsideAutocomplete) closeAllAutocompletes();
   });
 
-  activateTab("lookup");
+  activateTab("strategy");
   populateGroupFilter();
-  renderPropertySlots();
-  renderAnalysis();
   renderStrategyTargets();
   renderStrategy();
   applyFilters();
