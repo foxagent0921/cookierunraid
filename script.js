@@ -938,10 +938,13 @@
     }
 
     const itemRate = getItemRateInGrade(matched);
+    // 總命中率＝先抽中該群組再抽中該能力，群組機率為百分比需先轉回小數。
+    const totalRate = (matched.groupRate / 100) * itemRate;
     feedback.textContent = matched.grade === GRADE_HIGH
       ? `群組19｜指定能力命中率 ${formatProbability(itemRate)}｜高級・301階以上必定出現`
       : `群組${matched.groupId}｜群組機率 ${formatRate(matched.groupRate)}`
-        + `｜群組內指定能力命中率 ${formatProbability(itemRate)}`;
+        + `｜群組內指定能力命中率 ${formatProbability(itemRate)}`
+        + `｜總命中率 ${formatProbability(totalRate)}`;
     // 群組3的截圖資料不完整（項目合計僅62.12%），重新正規化後的命中率可能偏高。
     if (matched.groupId === INCOMPLETE_GROUP_ID) {
       feedback.textContent += `｜注意：群組${INCOMPLETE_GROUP_ID}截圖資料不完整，命中率以可見項目計算，可能偏高`;
