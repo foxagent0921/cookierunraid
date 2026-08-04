@@ -6,6 +6,8 @@
     0.14, 0.14, 2.22, 4.57, 4.57, 14.14, 0.28, 0.09, 0.25,
   ];
   const HIGH_GRADE_GROUP_ID = 19;
+  // 群組3的截圖項目機率合計僅62.12%，未完整揭露；相關計算需附上提醒。
+  const INCOMPLETE_GROUP_ID = 3;
   const GRADE_LOW = "low";
   const GRADE_INTERMEDIATE = "intermediate";
   const GRADE_HIGH = "high";
@@ -940,6 +942,10 @@
       ? `群組19｜指定能力命中率 ${formatProbability(itemRate)}｜高級・301階以上必定出現`
       : `群組${matched.groupId}｜群組機率 ${formatRate(matched.groupRate)}`
         + `｜群組內指定能力命中率 ${formatProbability(itemRate)}`;
+    // 群組3的截圖資料不完整（項目合計僅62.12%），重新正規化後的命中率可能偏高。
+    if (matched.groupId === INCOMPLETE_GROUP_ID) {
+      feedback.textContent += `｜注意：群組${INCOMPLETE_GROUP_ID}截圖資料不完整，命中率以可見項目計算，可能偏高`;
+    }
     feedback.classList.add("is-valid");
   }
 
