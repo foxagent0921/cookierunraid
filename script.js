@@ -1297,11 +1297,16 @@
       + "多個未釘白字可用任意排列命中所選能力；未設定的白字格不限能力，"
       + "但仍會依群組不可重複規則納入機率。";
 
+    const disclaimer = document.createElement("p");
+    disclaimer.className = "strategy-disclaimer";
+    disclaimer.textContent = "※ 計算結果僅供參考";
+
     elements.strategyResult.replaceChildren(
       verdict,
       calculationTable,
       configurationTable,
       note,
+      disclaimer,
     );
     elements.strategyResult.hidden = false;
     elements.strategyEmpty.hidden = true;

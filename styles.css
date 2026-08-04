@@ -912,6 +912,14 @@ mark {
   border-radius: var(--radius-md);
 }
 
+.strategy-disclaimer {
+  margin: 1rem 0 0;
+  color: #b42318;
+  font-size: 0.95rem;
+  font-weight: 950;
+  text-align: center;
+}
+
 .footer {
   display: flex;
   justify-content: space-between;
