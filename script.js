@@ -671,7 +671,10 @@
 
     const meta = document.createElement("span");
     meta.className = "autocomplete-option__meta";
-    meta.textContent = `群組 ${row.groupId}｜群組機率 ${formatRate(row.groupRate)}｜群組內機率 ${formatRate(row.itemRate)}`;
+    // 前兩個是參數速查表的原始值，最後一個是實際命中率，與選定後的欄位提示同一個函式。
+    meta.textContent = `群組 ${row.groupId}｜群組機率 ${formatRate(row.groupRate)}`
+      + `｜群組內機率 ${formatRate(row.itemRate)}`
+      + `｜整顆石頭命中率 ${formatProbability(getStoneHitRate(row))}`;
 
     const badges = document.createElement("span");
     badges.className = "autocomplete-option__badges";
@@ -917,6 +920,16 @@
     return result;
   }
 
+  // 一顆301階石頭出現該能力的機率。白字有三格且群組不可重複，要用聯合機率遞迴算
+  // 「任一格命中」，只算一格會低估約三倍；紫字與藍字各只有一格，就是兩層相乘。
+  // 欄位提示與候選清單共用這個函式，兩處數字才不會各說各話。
+  function getStoneHitRate(row) {
+    if (row.grade === GRADE_LOW) {
+      return getWhiteTargetSetRate([row], new Set(), WHITE_SLOT_COUNT);
+    }
+    return getConditionalGroupRate(row.groupId, row.grade, new Set()) * getItemRateInGrade(row);
+  }
+
   function updateTargetFeedback(slot) {
     const feedback = slot.feedback;
     if (!feedback) return;
@@ -983,11 +996,7 @@
     const slotGroupRate = getConditionalGroupRate(matched.groupId, matched.grade, new Set());
     const slotLabel = matched.grade === GRADE_INTERMEDIATE ? "藍字格" : "白字格";
     const slotGroupRateText = `${slotLabel}抽中此群組 ${formatProbability(slotGroupRate)}`;
-    // 一顆301階石頭出現該能力的機率。白字有三格且群組不可重複，需用聯合機率遞迴，
-    // 只算一格會低估約三倍；藍字只有一格，就是上面兩個數字相乘。
-    const totalRate = matched.grade === GRADE_LOW
-      ? getWhiteTargetSetRate([matched], new Set(), WHITE_SLOT_COUNT)
-      : slotGroupRate * itemRate;
+    const totalRate = getStoneHitRate(matched);
     const totalRateText = `整顆石頭命中率 ${formatProbability(totalRate)}`
       + (matched.grade === GRADE_LOW ? `（${WHITE_SLOT_COUNT} 個白字格合計）` : "");
     feedback.textContent = matched.grade === GRADE_HIGH
