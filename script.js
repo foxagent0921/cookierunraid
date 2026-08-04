@@ -6,6 +6,8 @@
     0.14, 0.14, 2.22, 4.57, 4.57, 14.14, 0.28, 0.09, 0.25,
   ];
   const HIGH_GRADE_GROUP_ID = 19;
+  // 301階石頭的欄位組成：1 紫、1 藍、3 白。白字有三格，指定白字出現在任一格都算命中。
+  const WHITE_SLOT_COUNT = 3;
   // 群組3的截圖項目機率合計僅62.12%，未完整揭露；相關計算需附上提醒。
   const INCOMPLETE_GROUP_ID = 3;
   const GRADE_LOW = "low";
@@ -938,18 +940,24 @@
     }
 
     const itemRate = getItemRateInGrade(matched);
-    // 總命中率＝先抽中該群組再抽中該能力，群組機率為百分比需先轉回小數。
-    const totalRate = (matched.groupRate / 100) * itemRate;
     // 群組11、12這類單一能力群組的群組內命中率必為100%，直接標成「必中」會被誤讀成穩拿，
-    // 改寫成條件敘述，真正的機率交給總命中率呈現。
+    // 改寫成條件敘述，真正的機率交給整顆石頭命中率呈現。
     const itemRateText = itemRate >= 1
       ? "群組內唯一同級能力・抽中群組即命中"
       : `群組內指定能力命中率 ${formatProbability(itemRate)}`;
+    // 一顆301階石頭出現該能力的機率，口徑與釘選策略的計算一致：
+    // 群組機率要在「同等級可抽的群組」之間重新正規化，不能直接除以100；
+    // 白字有三格且群組不可重複，需用聯合機率遞迴，只算一格會低估約三倍。
+    const totalRate = matched.grade === GRADE_LOW
+      ? getWhiteTargetSetRate([matched], new Set(), WHITE_SLOT_COUNT)
+      : getConditionalGroupRate(matched.groupId, matched.grade, new Set()) * itemRate;
+    const totalRateText = `整顆石頭命中率 ${formatProbability(totalRate)}`
+      + (matched.grade === GRADE_LOW ? `（${WHITE_SLOT_COUNT} 個白字格合計）` : "");
     feedback.textContent = matched.grade === GRADE_HIGH
       ? `群組19｜指定能力命中率 ${formatProbability(itemRate)}｜高級・301階以上必定出現`
       : `群組${matched.groupId}｜群組機率 ${formatRate(matched.groupRate)}`
         + `｜${itemRateText}`
-        + `｜總命中率 ${formatProbability(totalRate)}`;
+        + `｜${totalRateText}`;
     // 群組3的截圖資料不完整（項目合計僅62.12%），重新正規化後的命中率可能偏高。
     if (matched.groupId === INCOMPLETE_GROUP_ID) {
       feedback.textContent += `｜注意：群組${INCOMPLETE_GROUP_ID}截圖資料不完整，命中率以可見項目計算，可能偏高`;
@@ -1056,7 +1064,7 @@
 
     const rollingWhites = whites.filter(({ fieldId }) => !strategyPinnedIds.has(fieldId));
     const pinnedWhiteCount = whites.filter(({ fieldId }) => strategyPinnedIds.has(fieldId)).length;
-    const rollingWhiteSlotCount = 3 - pinnedWhiteCount;
+    const rollingWhiteSlotCount = WHITE_SLOT_COUNT - pinnedWhiteCount;
     const whiteRate = getWhiteTargetSetRate(
       rollingWhites.map(({ row }) => row),
       usedGroups,
