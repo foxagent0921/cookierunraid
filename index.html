@@ -83,8 +83,9 @@
         <summary>召喚石機率規則說明</summary>
         <div class="rules-card__body">
           <p>附加能力依照「附加能力群組 → 附加能力項目 → 附加能力數值」的順序抽取，群組不可重複。</p>
-          <p>附加能力稀有度可由遊戲內字體顏色辨識：高級（紫色）、中級（藍色）、低級（白色）。31階以上必定出現1種中級能力；301階以上必定出現1種高級能力。</p>
-          <p class="rule-highlight"><strong>群組 19 為高級屬性群組</strong>，301階以上一定會出現。</p>
+          <p>附加能力稀有度可由遊戲內字體顏色辨識：高級（紫色）、中級（藍色）、低級（白色）。31階以上必定出現 1 種中級能力；301階以上必定出現 1 種高級能力。</p>
+          <p class="rule-highlight"><strong>群組 19 全部是高級能力</strong>，每顆召喚石只能出現 1 個高級能力。</p>
+          <p class="rule-highlight"><strong>群組 1～18 中，原始資料以 * 標示的項目是中級能力</strong>。每顆召喚石跨群組合計只能出現 1 個中級能力；選定後，其他群組的中級項目也會一併排除。</p>
         </div>
       </details>
 
@@ -129,7 +130,7 @@
           <p class="selection-count" id="selection-count" role="status" aria-live="polite">已選擇 0 / 5 個</p>
         </div>
 
-        <p class="analysis-intro">從建議清單選擇 1～5 個現有屬性，即可查看各自機率，以及因群組已占用而無法再次刷到的屬性。</p>
+        <p class="analysis-intro">從建議清單選擇 1～5 個現有屬性，即可查看各自機率。相同群組不可重複，高級與中級能力也各自只能選擇 1 個。</p>
 
         <div class="property-slots" id="property-slots"></div>
 
@@ -173,16 +174,16 @@
         <div class="results__header">
           <div>
             <p class="section-heading__kicker">EXCLUDED GROUPS</p>
-            <h2 id="blocked-title">同群組：不可能再刷到</h2>
+            <h2 id="blocked-title">不可能再刷到的能力</h2>
           </div>
-          <p class="result-count result-count--blocked" id="blocked-count">0 個群組</p>
+          <p class="result-count result-count--blocked" id="blocked-count">0 個分類</p>
         </div>
 
-        <p class="blocked-note">召喚石的附加能力群組不可重複；已有任一屬性後，同群組中的其他屬性就不會再次出現。</p>
+        <p class="blocked-note">已有任一屬性後，同群組中的其他能力不會再次出現；若已有中級能力，其他群組的所有中級能力也會一併排除。</p>
 
         <div class="analysis-empty" id="blocked-empty">
-          <p class="empty-state__title">尚無已占用群組</p>
-          <p>選擇現有屬性後，這裡會依群組列出無法再刷到的項目。</p>
+          <p class="empty-state__title">尚無已排除能力</p>
+          <p>選擇現有屬性後，這裡會依群組及能力等級列出無法再刷到的項目。</p>
         </div>
         <div class="blocked-groups" id="blocked-groups"></div>
       </section>

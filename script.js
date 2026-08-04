@@ -6,18 +6,33 @@
     0.14, 0.14, 2.22, 4.57, 4.57, 14.14, 0.28, 0.09, 0.25,
   ];
   const HIGH_GRADE_GROUP_ID = 19;
+  const GRADE_LOW = "low";
+  const GRADE_INTERMEDIATE = "intermediate";
+  const GRADE_HIGH = "high";
   const MAX_AUTOCOMPLETE_RESULTS = 20;
 
-  const entry = (name, rate) => ({ name, rate });
-  const ranged = (prefix, values, rates) =>
-    values.map((value, index) => entry(`${prefix}${value}`, rates[index]));
-  const group = (id, entries) => ({ id, rate: GROUP_RATES[id - 1], entries });
+  const entry = (name, rate, grade = GRADE_LOW) => ({ name, rate, grade });
+  const intermediateEntry = (name, rate) => entry(name, rate, GRADE_INTERMEDIATE);
+  const ranged = (prefix, values, rates, intermediateIndexes = []) =>
+    values.map((value, index) => entry(
+      `${prefix}${value}`,
+      rates[index],
+      intermediateIndexes.includes(index) ? GRADE_INTERMEDIATE : GRADE_LOW,
+    ));
+  const group = (id, entries) => ({
+    id,
+    rate: GROUP_RATES[id - 1],
+    entries: id === HIGH_GRADE_GROUP_ID
+      ? entries.map((currentEntry) => ({ ...currentEntry, grade: GRADE_HIGH }))
+      : entries,
+  });
 
   const fiveTier = (prefix, values, normalRate, rareRate) =>
-    ranged(prefix, values, [normalRate, normalRate, normalRate, normalRate, rareRate]);
+    ranged(prefix, values, [normalRate, normalRate, normalRate, normalRate, rareRate], [4]);
 
   const colorSeries = (prefix, values, rates) =>
-    ["黃色", "紅色", "藍色"].flatMap((color) => ranged(`${color}${prefix}`, values, rates));
+    ["黃色", "紅色", "藍色"].flatMap((color) =>
+      ranged(`${color}${prefix}`, values, rates, [values.length - 1]));
 
   const groups = [
     group(1, fiveTier(
@@ -37,7 +52,7 @@
       entry("餅乾體力增加11-20%", 12.12),
       entry("餅乾體力增加21-30%", 12.12),
       entry("餅乾體力增加31-40%", 12.12),
-      entry("餅乾體力增加41-50%", 1.52),
+      intermediateEntry("餅乾體力增加41-50%", 1.52),
       entry("餅乾所受傷害量減少1-10%", 12.12),
     ]),
     group(4, fiveTier(
@@ -58,7 +73,7 @@
         [1.96, 1.96, 1.96, 1.96, 0.20],
       ),
       entry("出現技能能量果凍", 3.24),
-      entry("出現更多技能能量果凍", 0.20),
+      intermediateEntry("出現更多技能能量果凍", 0.20),
       ...colorSeries(
         "技能傷害量減少",
         ["1-3%", "4-6%", "7-9%", "10-12%", "13-15%"],
@@ -86,7 +101,7 @@
       entry("視野更狹窄", 24.24),
       entry("視野非常狹窄", 24.24),
       entry("視野超級狹窄", 24.24),
-      entry("視野極為狹窄", 3.03),
+      intermediateEntry("視野極為狹窄", 3.03),
     ]),
     group(9, fiveTier(
       "遊戲速度加快",
@@ -99,17 +114,19 @@
         "體力恢復量增加",
         ["1-5%", "6-10%", "11-15%", "16-20%", "21-25%"],
         [12.12, 12.12, 12.12, 12.12, 1.52],
+        [4],
       ),
       ...ranged(
         "體力恢復量減少",
         ["1-3%", "4-6%", "7-9%", "10-11%", "12-14%"],
         [12.12, 12.12, 12.12, 12.12, 1.52],
+        [4],
       ),
     ]),
-    group(11, [entry("套用強度150的磁力", 100.00)]),
-    group(12, [entry("跳躍次數增加3次", 100.00)]),
+    group(11, [intermediateEntry("套用強度150的磁力", 100.00)]),
+    group(12, [intermediateEntry("跳躍次數增加3次", 100.00)]),
     group(13, [
-      entry("每隔一段時間獲得熊熊果凍派對道具", 6.25),
+      intermediateEntry("每隔一段時間獲得熊熊果凍派對道具", 6.25),
       entry("掉下普通果凍", 18.75),
       entry("掉下黃色熊熊果凍", 18.75),
       entry("掉下粉紅熊熊果凍", 18.75),
@@ -134,33 +151,37 @@
           `${job}餅乾傷害量增加`,
           ["10%", "20%", "30%", "40%", "50%"],
           [3.92, 3.92, 3.92, 3.92, 0.98],
+          [4],
         )),
       ...ranged(
         "2個盾牌守護者以上時餅乾傷害量增加",
         ["10%", "20%", "30%", "40%", "50%"],
         [3.92, 3.92, 3.92, 3.92, 0.98],
+        [4],
       ),
       ...ranged(
         "2個果凍魔法師以上時餅乾傷害量增加",
-        ["10%", "20%", "30%", "40%"],
-        [3.92, 3.92, 3.92, 3.92],
+        ["10%", "20%", "30%", "40%", "50%"],
+        [3.92, 3.92, 3.92, 3.92, 0.98],
+        [4],
       ),
       ...ranged(
         "2個閃避大師以上時餅乾傷害量增加",
-        ["40%", "50%"],
-        [3.92, 0.98],
+        ["10%", "20%", "30%", "40%", "50%"],
+        [3.92, 3.92, 3.92, 3.92, 0.98],
+        [4],
       ),
     ]),
     group(17, [
-      entry("每隔一段時間弱化怪物防禦力（維持7秒）", 50.00),
-      entry("每隔一段時間強化怪物防禦力（維持35秒）", 50.00),
+      intermediateEntry("每隔一段時間弱化怪物防禦力（維持7秒）", 50.00),
+      intermediateEntry("每隔一段時間強化怪物防禦力（維持35秒）", 50.00),
     ]),
     group(18, [
-      entry("討伐時100%獲得鑽石砂糖結晶", 1.52),
-      entry("討伐時100%獲得金砂糖結晶", 7.58),
-      entry("討伐時100%獲得隨機技能寶石(S)", 15.15),
-      entry("討伐時100%獲得隨機技能寶石(A)", 30.30),
-      entry("討伐時100%獲得隨機技能寶石(B)", 45.45),
+      intermediateEntry("討伐時100%獲得鑽石砂糖結晶", 1.52),
+      intermediateEntry("討伐時100%獲得金砂糖結晶", 7.58),
+      intermediateEntry("討伐時100%獲得隨機技能寶石(S)", 15.15),
+      intermediateEntry("討伐時100%獲得隨機技能寶石(A)", 30.30),
+      intermediateEntry("討伐時100%獲得隨機技能寶石(B)", 45.45),
     ]),
     group(19, [
       entry("所有分數X2倍", 11.11),
@@ -182,6 +203,7 @@
       groupRate: currentGroup.rate,
       item: currentEntry.name,
       itemRate: currentEntry.rate,
+      grade: currentEntry.grade,
       isGroupStart: index === 0,
     })),
   );
@@ -279,6 +301,30 @@
     return cell;
   }
 
+  function getGradeLabel(row) {
+    if (row.grade === GRADE_HIGH) return "高級";
+    if (row.grade === GRADE_INTERMEDIATE) return "中級";
+    return "低級";
+  }
+
+  function getGradeSearchText(row) {
+    if (row.grade === GRADE_HIGH) return "高級 高級能力 高級屬性 301階以上必定出現";
+    if (row.grade === GRADE_INTERMEDIATE) return "中級 中級能力 中級屬性 31階以上必定出現";
+    return "低級 低級能力 低級屬性";
+  }
+
+  function applyAbilityGrade(element, row) {
+    element.classList.add(`ability-grade--${row.grade}`);
+  }
+
+  function appendGradeBadge(container, row) {
+    if (row.grade === GRADE_LOW) return;
+    const badge = document.createElement("span");
+    badge.className = `grade-label grade-label--${row.grade}`;
+    badge.textContent = getGradeLabel(row);
+    container.append(badge);
+  }
+
   function createGroupIdentity(groupId) {
     const identity = document.createElement("span");
     identity.className = "group-identity";
@@ -300,6 +346,8 @@
 
   function createRow(row, highlightTokens) {
     const tableRow = document.createElement("tr");
+    tableRow.dataset.item = row.item;
+    tableRow.dataset.grade = row.grade;
     if (row.isGroupStart) tableRow.classList.add("group-start");
 
     const groupCell = createCell("群組");
@@ -309,7 +357,9 @@
     groupRateCell.textContent = formatRate(row.groupRate);
 
     const itemCell = createCell("附加能力");
+    applyAbilityGrade(itemCell, row);
     addHighlightedText(itemCell, row.item, highlightTokens);
+    appendGradeBadge(itemCell, row);
 
     const itemRateCell = createCell("項目機率", "rate");
     itemRateCell.textContent = formatRate(row.itemRate);
@@ -350,7 +400,7 @@
         formatRate(row.groupRate),
         row.item,
         formatRate(row.itemRate),
-        row.groupId === HIGH_GRADE_GROUP_ID ? "高級屬性 301階以上必定出現" : "",
+        getGradeSearchText(row),
       ].join(" "));
 
       return queryTokens.every((token) => searchable.includes(token));
@@ -410,6 +460,8 @@
     const acceptedBySlot = new Map();
     const rejectedBySlot = new Map();
     const groupOwners = new Map();
+    let intermediateOwner = null;
+    let highOwner = null;
 
     propertySlotStates.forEach((slot, index) => {
       const row = resolveProperty(slot.value);
@@ -418,6 +470,7 @@
       const owner = groupOwners.get(row.groupId);
       if (owner) {
         rejectedBySlot.set(slot.id, {
+          reason: "group",
           row,
           slotIndex: index + 1,
           ownerIndex: owner.index + 1,
@@ -425,8 +478,30 @@
         return;
       }
 
+      if (row.grade === GRADE_INTERMEDIATE && intermediateOwner) {
+        rejectedBySlot.set(slot.id, {
+          reason: "intermediate",
+          row,
+          slotIndex: index + 1,
+          ownerIndex: intermediateOwner.index + 1,
+        });
+        return;
+      }
+
+      if (row.grade === GRADE_HIGH && highOwner) {
+        rejectedBySlot.set(slot.id, {
+          reason: "high",
+          row,
+          slotIndex: index + 1,
+          ownerIndex: highOwner.index + 1,
+        });
+        return;
+      }
+
       const record = { slot, row, index };
       groupOwners.set(row.groupId, record);
+      if (row.grade === GRADE_INTERMEDIATE) intermediateOwner = record;
+      if (row.grade === GRADE_HIGH) highOwner = record;
       accepted.push(record);
       acceptedBySlot.set(slot.id, record);
     });
@@ -445,10 +520,14 @@
     const tokens = query.split(" ").filter(Boolean);
     const selectedRows = getAcceptedRows(slot.id);
     const selectedGroups = new Set(selectedRows.map((row) => row.groupId));
+    const hasIntermediate = selectedRows.some((row) => row.grade === GRADE_INTERMEDIATE);
+    const hasHigh = selectedRows.some((row) => row.grade === GRADE_HIGH);
 
     const matches = rows
       .map((row) => {
         if (selectedGroups.has(row.groupId)) return null;
+        if (row.grade === GRADE_INTERMEDIATE && hasIntermediate) return null;
+        if (row.grade === GRADE_HIGH && hasHigh) return null;
 
         const normalizedItem = normalize(row.item);
         const searchable = normalize([
@@ -457,7 +536,7 @@
           `群組${row.groupId}`,
           formatRate(row.groupRate),
           formatRate(row.itemRate),
-          row.groupId === HIGH_GRADE_GROUP_ID ? "高級屬性 301階以上必定出現" : "",
+          getGradeSearchText(row),
         ].join(" "));
 
         if (!tokens.every((token) => searchable.includes(token))) return null;
@@ -505,9 +584,11 @@
   }
 
   function selectAutocompleteRow(slot, row) {
-    const groupAlreadyUsed = getAcceptedRows(slot.id)
-      .some((selectedRow) => selectedRow.groupId === row.groupId);
+    const selectedRows = getAcceptedRows(slot.id);
+    const groupAlreadyUsed = selectedRows.some((selectedRow) => selectedRow.groupId === row.groupId);
+    const gradeAlreadyUsed = selectedRows.some((selectedRow) => selectedRow.grade === row.grade);
     if (groupAlreadyUsed) return;
+    if (row.grade !== GRADE_LOW && gradeAlreadyUsed) return;
 
     slot.value = row.item;
     if (slot.input) slot.input.value = row.item;
@@ -531,6 +612,7 @@
     const name = document.createElement("span");
     name.className = "autocomplete-option__name";
     name.textContent = row.item;
+    applyAbilityGrade(name, row);
 
     const meta = document.createElement("span");
     meta.className = "autocomplete-option__meta";
@@ -539,11 +621,16 @@
     const badges = document.createElement("span");
     badges.className = "autocomplete-option__badges";
 
-    if (row.groupId === HIGH_GRADE_GROUP_ID) {
+    if (row.grade === GRADE_HIGH) {
       const highGrade = document.createElement("span");
       highGrade.className = "autocomplete-tag autocomplete-tag--high";
       highGrade.textContent = "高級・301階以上必定出現";
       badges.append(highGrade);
+    } else if (row.grade === GRADE_INTERMEDIATE) {
+      const intermediateGrade = document.createElement("span");
+      intermediateGrade.className = "autocomplete-tag autocomplete-tag--intermediate";
+      intermediateGrade.textContent = "中級・31階以上必定出現";
+      badges.append(intermediateGrade);
     }
 
     option.append(name, meta, badges);
@@ -662,15 +749,23 @@
 
     const rejection = validation.rejectedBySlot.get(slot.id);
     if (rejection) {
-      feedback.textContent = `群組 ${matchedProperty.groupId} 已由現有屬性 ${rejection.ownerIndex} 占用，此輸入不會加入分析。`;
+      if (rejection.reason === "intermediate") {
+        feedback.textContent = `中級能力已由現有屬性 ${rejection.ownerIndex} 占用；每顆召喚石只能有 1 個中級能力，此輸入不會加入分析。`;
+      } else if (rejection.reason === "high") {
+        feedback.textContent = `高級能力已由現有屬性 ${rejection.ownerIndex} 占用；每顆召喚石只能有 1 個高級能力，此輸入不會加入分析。`;
+      } else {
+        feedback.textContent = `群組 ${matchedProperty.groupId} 已由現有屬性 ${rejection.ownerIndex} 占用，此輸入不會加入分析。`;
+      }
       feedback.classList.add("is-invalid");
       return;
     }
 
-    const highGradeLabel = matchedProperty.groupId === HIGH_GRADE_GROUP_ID
-      ? "｜高級屬性・301階以上必定出現"
-      : "";
-    feedback.textContent = `群組 ${matchedProperty.groupId}｜群組機率 ${formatRate(matchedProperty.groupRate)}｜群組內機率 ${formatRate(matchedProperty.itemRate)}${highGradeLabel}`;
+    const gradeLabel = matchedProperty.grade === GRADE_HIGH
+      ? "高級能力・301階以上必定出現"
+      : matchedProperty.grade === GRADE_INTERMEDIATE
+        ? "中級能力・31階以上必定出現"
+        : "低級能力";
+    feedback.textContent = `群組 ${matchedProperty.groupId}｜群組機率 ${formatRate(matchedProperty.groupRate)}｜群組內機率 ${formatRate(matchedProperty.itemRate)}｜${gradeLabel}`;
     feedback.classList.add("is-valid");
   }
 
@@ -775,6 +870,8 @@
     const tableRow = document.createElement("tr");
     const itemCell = createCell("現有屬性");
     itemCell.textContent = row.item;
+    applyAbilityGrade(itemCell, row);
+    appendGradeBadge(itemCell, row);
 
     const groupCell = createCell("群組");
     groupCell.append(createGroupIdentity(row.groupId));
@@ -821,6 +918,8 @@
       const name = document.createElement("span");
       name.className = "blocked-item__name";
       name.textContent = row.item;
+      applyAbilityGrade(name, row);
+      appendGradeBadge(name, row);
 
       const meta = document.createElement("span");
       meta.className = "blocked-item__meta";
@@ -831,6 +930,55 @@
       status.className = `status-badge ${isOwned ? "status-badge--owned" : "status-badge--blocked"}`;
       status.textContent = isOwned ? "現有屬性" : "不可再刷到";
       meta.append(rate, status);
+
+      item.append(name, meta);
+      list.append(item);
+    });
+
+    card.append(header, list);
+    return card;
+  }
+
+  function createBlockedIntermediateCard(selectedIntermediate) {
+    const blockedRows = rows.filter((row) =>
+      row.grade === GRADE_INTERMEDIATE
+      && row.groupId !== selectedIntermediate.groupId);
+    const card = document.createElement("article");
+    card.className = "blocked-group-card blocked-group-card--intermediate";
+
+    const header = document.createElement("header");
+    header.className = "blocked-group-card__header";
+    const title = document.createElement("h3");
+    title.textContent = "跨群組中級能力・不可再刷到";
+    const summary = document.createElement("p");
+    summary.textContent = `已選 1 個中級能力｜另外排除 ${blockedRows.length} 個中級項目`;
+    header.append(title, summary);
+
+    const list = document.createElement("ul");
+    list.className = "blocked-list";
+
+    blockedRows.forEach((row) => {
+      const item = document.createElement("li");
+      item.className = "blocked-item";
+
+      const name = document.createElement("span");
+      name.className = "blocked-item__name";
+      name.textContent = row.item;
+      applyAbilityGrade(name, row);
+      appendGradeBadge(name, row);
+
+      const meta = document.createElement("span");
+      meta.className = "blocked-item__meta";
+      const groupLabel = document.createElement("span");
+      groupLabel.className = "blocked-item__group";
+      groupLabel.textContent = `群組 ${row.groupId}`;
+      const rate = document.createElement("span");
+      rate.className = "rate";
+      rate.textContent = formatRate(row.itemRate);
+      const status = document.createElement("span");
+      status.className = "status-badge status-badge--blocked";
+      status.textContent = "中級已占用";
+      meta.append(groupLabel, rate, status);
 
       item.append(name, meta);
       list.append(item);
@@ -864,13 +1012,24 @@
     selectedRows.forEach((row) => probabilityRows.append(createProbabilityRow(row)));
     elements.selectedProbabilities.replaceChildren(probabilityRows);
 
-    const warnings = [...validation.rejectedBySlot.values()].map((rejection) =>
-      `現有屬性 ${rejection.slotIndex} 的群組 ${rejection.row.groupId} 已由現有屬性 ${rejection.ownerIndex} 占用，因此未加入分析。`);
+    const warnings = [...validation.rejectedBySlot.values()].map((rejection) => {
+      if (rejection.reason === "intermediate") {
+        return `現有屬性 ${rejection.slotIndex} 是中級能力，但中級能力已由現有屬性 ${rejection.ownerIndex} 占用，因此未加入分析。`;
+      }
+      if (rejection.reason === "high") {
+        return `現有屬性 ${rejection.slotIndex} 是高級能力，但高級能力已由現有屬性 ${rejection.ownerIndex} 占用，因此未加入分析。`;
+      }
+      return `現有屬性 ${rejection.slotIndex} 的群組 ${rejection.row.groupId} 已由現有屬性 ${rejection.ownerIndex} 占用，因此未加入分析。`;
+    });
 
     elements.ruleWarning.hidden = warnings.length === 0;
     elements.ruleWarning.textContent = warnings.join(" ");
 
     const blockedCards = document.createDocumentFragment();
+    const selectedIntermediate = selectedRows.find((row) => row.grade === GRADE_INTERMEDIATE);
+    if (selectedIntermediate) {
+      blockedCards.append(createBlockedIntermediateCard(selectedIntermediate));
+    }
     [...selectedKeysByGroup.entries()]
       .sort(([groupA], [groupB]) => groupA - groupB)
       .forEach(([groupId, selectedKeys]) => {
@@ -878,8 +1037,9 @@
       });
 
     elements.blockedGroups.replaceChildren(blockedCards);
-    elements.blockedEmpty.hidden = selectedKeysByGroup.size !== 0;
-    elements.blockedCount.textContent = `${selectedKeysByGroup.size} 個群組`;
+    const blockedCategoryCount = selectedKeysByGroup.size + (selectedIntermediate ? 1 : 0);
+    elements.blockedEmpty.hidden = blockedCategoryCount !== 0;
+    elements.blockedCount.textContent = `${blockedCategoryCount} 個分類`;
     renderPropertySlotsState();
   }
 
@@ -970,7 +1130,7 @@
   renderAnalysis();
   applyFilters();
 
-  if (groups.length !== 19 || rows.length !== 183) {
+  if (groups.length !== 19 || rows.length !== 187) {
     console.warn(`資料筆數與預期不符：${groups.length} 個群組、${rows.length} 筆項目。`);
   }
 })();

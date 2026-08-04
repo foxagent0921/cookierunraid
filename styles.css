@@ -13,6 +13,10 @@
   --gold-light: #ffd978;
   --teal: #087f78;
   --teal-soft: #dff5f0;
+  --grade-intermediate: #1769aa;
+  --grade-intermediate-soft: #e2f1ff;
+  --grade-high: #7541a6;
+  --grade-high-soft: #f0e5fb;
   --shadow: 0 18px 48px rgba(83, 46, 21, 0.12);
   --radius-lg: 24px;
   --radius-md: 16px;
@@ -452,6 +456,37 @@ tbody tr:first-child td {
   white-space: nowrap;
 }
 
+.ability-grade--intermediate {
+  color: var(--grade-intermediate);
+}
+
+.ability-grade--high {
+  color: var(--grade-high);
+}
+
+.grade-label {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: 0.45rem;
+  padding: 0.08rem 0.38rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 900;
+  line-height: 1.35;
+  vertical-align: 0.08em;
+}
+
+.grade-label--intermediate {
+  color: var(--grade-intermediate);
+  background: var(--grade-intermediate-soft);
+}
+
+.grade-label--high {
+  color: var(--grade-high);
+  background: var(--grade-high-soft);
+}
+
 .rate {
   color: var(--teal);
   font-variant-numeric: tabular-nums;
@@ -645,6 +680,11 @@ mark {
   background: #7541a6;
 }
 
+.autocomplete-tag--intermediate {
+  color: #fff;
+  background: var(--grade-intermediate);
+}
+
 .autocomplete-empty,
 .autocomplete-footer {
   margin: 0;
@@ -808,6 +848,14 @@ mark {
   margin: 0;
 }
 
+.blocked-group-card--intermediate {
+  border-color: #99c8ed;
+}
+
+.blocked-group-card--intermediate .blocked-group-card__header {
+  background: var(--grade-intermediate);
+}
+
 .blocked-group-card__header h3 {
   font-size: 1rem;
 }
@@ -849,6 +897,12 @@ mark {
   justify-content: flex-end;
   gap: 0.45rem;
   white-space: nowrap;
+}
+
+.blocked-item__group {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
 .status-badge {
