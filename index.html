@@ -161,6 +161,122 @@
           <p class="rule-highlight rule-highlight--recommended">期望花費是<strong>目前兩格已釘後</strong>的終局成本：每次5,000點，計算為 <code>5,000 ÷ 單次達成率</code>。不同釘法可能不是同一起跑點，結果不包含取得釘選內容及中途換釘的前置成本，不能直接當成完整路線總花費。</p>
         </div>
       </details>
+
+      <details class="rules-card">
+        <summary>群組16 陷阱：藍字該不該接受？</summary>
+        <div class="rules-card__body">
+          <p><strong>群組16 的 4 個 ★ 推薦藍字：</strong></p>
+
+          <div class="analysis-table-frame">
+            <table>
+              <caption>群組16 的 ★ 推薦藍字清單</caption>
+              <thead>
+                <tr>
+                  <th scope="col">★ 推薦藍字</th>
+                  <th scope="col">群組內項目機率</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>果凍魔法師餅乾傷害量增加50%</td>
+                  <td>0.98%</td>
+                </tr>
+                <tr>
+                  <td>閃避大師餅乾傷害量增加50%</td>
+                  <td>0.98%</td>
+                </tr>
+                <tr>
+                  <td>2個果凍魔法師以上時餅乾傷害量增加50%</td>
+                  <td>0.98%</td>
+                </tr>
+                <tr>
+                  <td>2個閃避大師以上時餅乾傷害量增加50%</td>
+                  <td>0.98%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>群組16 本身的抽中率是 <strong>14.14%</strong>，19 個群組裡最高。注意<strong>盾牌守護者</strong>那兩條技能線的 50% 版本只是一般中級能力（原始資料標 <code>*</code>），不算在 9 個 <code>**</code> 推薦藍字裡。</p>
+
+          <p>這一節談的是<strong>目標怎麼挑</strong>：如果你的需求是「湊到任意 ★ 推薦能力」而不是指定某一條特定能力，群組16 的取捨會大幅影響總花費。</p>
+
+          <p class="rule-highlight rule-highlight--recommended"><strong>結論：以「任意 ★ 推薦藍字都算達成」為目標時，群組16 是三個來源裡最差的。</strong>藍字避開群組16 約省 <strong>6.3%</strong> 總花費，藍字、白字都避開約省 <strong>8.1%</strong>。</p>
+
+          <p><strong>為什麼？</strong>因為群組不可重複。群組16 的推薦藍字與推薦白字是同 4 條技能線的不同數值，彼此互斥：</p>
+
+          <div class="analysis-table-frame">
+            <table>
+              <caption>群組16 推薦項目的互斥關係</caption>
+              <thead>
+                <tr>
+                  <th scope="col">稀有度</th>
+                  <th scope="col">內容（4 條技能線 × 對應數值）</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>★ 推薦藍字（4 項）</td>
+                  <td>果凍魔法師／閃避大師 餅乾傷害量增加 <strong>50%</strong>、2 個以上時餅乾傷害量增加 <strong>50%</strong></td>
+                </tr>
+                <tr>
+                  <td>★ 推薦白字（8 項）</td>
+                  <td>同 4 條技能線的 <strong>30% / 40%</strong> 版本</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>釘住群組16 的藍字，會把這 8 個推薦白字一起排除——佔全部 23 個推薦白字的 <strong>32.7%</strong>，白字每格命中率從 14.71% 掉到 <strong>11.57%</strong>。相比之下藍字來自群組5 只掉 0.60 個百分點、群組1 掉 1.78 個百分點。</p>
+
+          <p><strong>模擬對照</strong>（每個策略 120,000 次，含標準誤）：</p>
+
+          <div class="analysis-table-frame">
+            <table>
+              <caption>各策略的期望總花費與相對基準節省</caption>
+              <thead>
+                <tr>
+                  <th scope="col">策略</th>
+                  <th scope="col">期望總點數</th>
+                  <th scope="col">相對基準節省</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>不挑群組（基準）</td>
+                  <td>168,311 ±423</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>只有白字避開群組16</td>
+                  <td>167,598 ±431</td>
+                  <td>713 ±1,183（0.4%）／不顯著</td>
+                </tr>
+                <tr class="is-best">
+                  <td>藍字避開群組16</td>
+                  <td>157,755 ±379</td>
+                  <td>10,557 ±1,113（6.3%）／顯著</td>
+                </tr>
+                <tr class="is-best">
+                  <td>藍字、白字都避開群組16</td>
+                  <td>154,693 ±376</td>
+                  <td>13,618 ±1,109（8.1%）／顯著</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>9 個推薦藍字裡有 4 個住在群組16，拒絕它等於放棄近一半的藍字來源；上表已把「要等更久才遇到推薦藍字」的代價算進去，結果仍然值得避開。</p>
+
+          <p class="rule-highlight"><strong>關鍵：單獨避開群組16 的白字沒有用。</strong>要先讓藍字避開群組16，白字的選擇才開始有價值——只有當你開始拒絕群組16 的藍字，才會頻繁面臨「該釘哪個白字」的抉擇。兩者是交互作用，不是各自獨立的效果。</p>
+
+          <p><strong>實務做法：</strong>藍字剛好是群組16 的推薦項時，<strong>先別急著釘</strong>，把第二個釘位留給白字；等白字湊到 1 個推薦項之後，藍字是不是群組16 就沒差了（154,693 對 154,601，落在誤差內）。</p>
+
+          <p><strong>反方向也成立：</strong>如果先釘走了群組16 的白字，藍字命中推薦項的機率會從 20.51% 崩到 <strong>8.12%</strong>，是 18 個群組裡跌幅最大的。群組16 的抽中率 14.14% 又是 19 個群組裡最高的，所以這個抉擇會很常遇到。</p>
+
+          <p class="rule-highlight"><strong>但書：</strong>以上只適用於「任意 ★ 推薦藍字都算達成」的目標。如果你<strong>指定</strong>要群組16 的某一條藍字（例如「2個閃避大師以上時餅乾傷害量增加50%」），這段分析不適用——必須接受釘住群組16，白字只能從群組 1／5／9／10／15 的 15 個推薦項裡湊。上方計算器就是為這種「指定目標」情境設計的。</p>
+        </div>
+      </details>
     </div>
   </main>
 

@@ -888,11 +888,13 @@ mark {
   border-top: 1px dashed var(--teal);
 }
 
-.strategy-result tbody tr.is-best {
+.strategy-result tbody tr.is-best,
+.rules-card__body tbody tr.is-best {
   background: var(--teal-soft);
 }
 
-.strategy-result tbody tr.is-best td:first-child {
+.strategy-result tbody tr.is-best td:first-child,
+.rules-card__body tbody tr.is-best td:first-child {
   font-weight: 950;
   box-shadow: inset 3px 0 0 var(--teal);
 }
