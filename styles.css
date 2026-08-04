@@ -691,7 +691,14 @@ mark {
   border: 1px solid #d9c392;
 }
 
-.strategy-pin-toggle {
+.property-slot__actions {
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+}
+
+.strategy-pin-toggle,
+.strategy-clear-button {
   min-width: 5.4rem;
   min-height: 2.5rem;
   padding: 0.5rem 0.75rem;
@@ -701,6 +708,26 @@ mark {
   border-radius: var(--radius-sm);
   font-weight: 900;
   cursor: pointer;
+}
+
+/* 清除是破壞性操作，比釘選低一階：字級小一點、不搶視覺重量。 */
+.strategy-clear-button {
+  min-height: 2.1rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.strategy-clear-button:hover:not(:disabled) {
+  color: #a43d2f;
+  border-color: #a43d2f;
+}
+
+.strategy-clear-button:disabled {
+  color: #bdb198;
+  background: #f7f3e8;
+  border-color: #e6d9bd;
+  cursor: not-allowed;
 }
 
 .strategy-pin-toggle:hover:not(:disabled) {
@@ -1006,7 +1033,8 @@ mark {
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .strategy-pin-toggle {
+  .property-slot__actions {
+    grid-auto-flow: column;
     grid-column: 2;
     width: fit-content;
   }

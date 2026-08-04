@@ -314,6 +314,7 @@
     onSelect: () => {
       // 任一能力選定後，其他欄位的同群組候選能力必須立即排除。
       strategyTargetStates.forEach((current) => updateTargetFeedback(current));
+      updateStrategySlotActions();
       renderStrategy();
     },
   });
@@ -1086,19 +1087,54 @@
     };
   }
 
-  function createStrategyPinButton(fieldId) {
-    const isPinned = strategyPinnedIds.has(fieldId);
-    const targetState = strategyTargetStates.find((slot) => slot.id === fieldId);
-    const hasConfiguredTarget = Boolean(targetState && resolveProperty(targetState.value));
+  function clearStrategySlot(slot) {
+    slot.value = "";
+    slot.isOpen = false;
+    slot.activeIndex = -1;
+    // 沒有內容就沒有東西可釘，順手解除釘選；否則會留下「已釘選但欄位是空的」，
+    // 空狀態提示會變成「至少需要 3 格目標」，看不出真正的原因。
+    strategyPinnedIds.delete(slot.id);
+    renderStrategyTargets();
+    renderStrategy();
+    slot.input?.focus();
+  }
+
+  function createStrategyClearButton(slot) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "strategy-clear-button";
+    button.textContent = "清除";
+    button.disabled = slot.value.trim() === "";
+    button.setAttribute("aria-label", `清除${STRATEGY_FIELD_LABELS.get(slot.id)}目標`);
+    button.addEventListener("click", () => clearStrategySlot(slot));
+    return button;
+  }
+
+  function isPinToggleDisabled(slot) {
+    if (strategyPinnedIds.has(slot.id)) return false;
+    return strategyPinnedIds.size >= 2 || !resolveProperty(slot.value);
+  }
+
+  // 打字不會重建欄位（會弄丟游標），所以按鈕的可用狀態要就地更新，
+  // 否則輸入內容後「清除」與「設為釘選」會一直停在停用狀態。
+  function updateStrategySlotActions() {
+    strategyTargetStates.forEach((slot) => {
+      if (slot.pinButton) slot.pinButton.disabled = isPinToggleDisabled(slot);
+      if (slot.clearButton) slot.clearButton.disabled = slot.value.trim() === "";
+    });
+  }
+
+  function createStrategyPinButton(slot) {
+    const isPinned = strategyPinnedIds.has(slot.id);
     const button = document.createElement("button");
     button.type = "button";
     button.className = `strategy-pin-toggle${isPinned ? " is-pinned" : ""}`;
     button.textContent = isPinned ? "已釘選" : "設為釘選";
     button.setAttribute("aria-pressed", String(isPinned));
-    button.disabled = !isPinned && (strategyPinnedIds.size >= 2 || !hasConfiguredTarget);
+    button.disabled = isPinToggleDisabled(slot);
     button.addEventListener("click", () => {
-      if (isPinned) strategyPinnedIds.delete(fieldId);
-      else if (strategyPinnedIds.size < 2) strategyPinnedIds.add(fieldId);
+      if (isPinned) strategyPinnedIds.delete(slot.id);
+      else if (strategyPinnedIds.size < 2) strategyPinnedIds.add(slot.id);
       renderStrategyTargets();
       renderStrategy();
     });
@@ -1215,6 +1251,7 @@
         slot.isOpen = true;
         slot.activeIndex = -1;
         strategyTargetStates.forEach((current) => updateTargetFeedback(current));
+        updateStrategySlotActions();
         renderAutocomplete(slot);
         renderStrategy();
       });
@@ -1228,7 +1265,14 @@
 
       combobox.append(input, listbox);
       field.append(label, combobox, feedback);
-      container.append(number, field, createStrategyPinButton(slot.id));
+
+      const actions = document.createElement("div");
+      actions.className = "property-slot__actions";
+      slot.pinButton = createStrategyPinButton(slot);
+      slot.clearButton = createStrategyClearButton(slot);
+      actions.append(slot.pinButton, slot.clearButton);
+
+      container.append(number, field, actions);
       fragment.append(container);
     });
 
