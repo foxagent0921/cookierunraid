@@ -940,10 +940,15 @@
     const itemRate = getItemRateInGrade(matched);
     // 總命中率＝先抽中該群組再抽中該能力，群組機率為百分比需先轉回小數。
     const totalRate = (matched.groupRate / 100) * itemRate;
+    // 群組11、12這類單一能力群組的群組內命中率必為100%，直接標成「必中」會被誤讀成穩拿，
+    // 改寫成條件敘述，真正的機率交給總命中率呈現。
+    const itemRateText = itemRate >= 1
+      ? "群組內唯一同級能力・抽中群組即命中"
+      : `群組內指定能力命中率 ${formatProbability(itemRate)}`;
     feedback.textContent = matched.grade === GRADE_HIGH
       ? `群組19｜指定能力命中率 ${formatProbability(itemRate)}｜高級・301階以上必定出現`
       : `群組${matched.groupId}｜群組機率 ${formatRate(matched.groupRate)}`
-        + `｜群組內指定能力命中率 ${formatProbability(itemRate)}`
+        + `｜${itemRateText}`
         + `｜總命中率 ${formatProbability(totalRate)}`;
     // 群組3的截圖資料不完整（項目合計僅62.12%），重新正規化後的命中率可能偏高。
     if (matched.groupId === INCOMPLETE_GROUP_ID) {
@@ -1032,15 +1037,19 @@
       if (strategyPinnedIds.has(fieldId)) usedGroups.add(row.groupId);
     });
 
-    let purpleRate = 1;
-    if (!strategyPinnedIds.has("purple")) {
-      purpleRate = getItemRateInGrade(purple);
-    }
+    // 已釘選的格子計算上視為100%，另外算出「同一格若未釘選」的機率，供換釘取捨參考。
+    // 藍字的參考值要把自己的群組移出排除清單，否則會被自己的釘選狀態影響。
+    const purpleUnpinnedRate = getItemRateInGrade(purple);
+    const blueUnpinnedGroups = new Set(usedGroups);
+    blueUnpinnedGroups.delete(blue.groupId);
+    const blueUnpinnedRate = getConditionalGroupRate(blue.groupId, GRADE_INTERMEDIATE, blueUnpinnedGroups)
+      * getItemRateInGrade(blue);
+
+    const purpleRate = strategyPinnedIds.has("purple") ? 1 : purpleUnpinnedRate;
 
     let blueRate = 1;
     if (!strategyPinnedIds.has("blue")) {
-      blueRate = getConditionalGroupRate(blue.groupId, GRADE_INTERMEDIATE, usedGroups)
-        * getItemRateInGrade(blue);
+      blueRate = blueUnpinnedRate;
       // 藍字先抽；成功抽到後，其群組會排除後續白字。
       usedGroups.add(blue.groupId);
     }
@@ -1058,6 +1067,8 @@
     return {
       purpleRate,
       blueRate,
+      purpleUnpinnedRate,
+      blueUnpinnedRate,
       whiteRate,
       perRoll,
       expectedRolls: perRoll > 0 ? 1 / perRoll : Number.POSITIVE_INFINITY,
@@ -1268,12 +1279,16 @@
       [
         createStrategyCalculationRow(
           "紫字",
-          strategyPinnedIds.has("purple") ? "已釘選" : targets.purple.item,
+          strategyPinnedIds.has("purple")
+            ? `已釘選・未釘時 ${formatProbability(result.purpleUnpinnedRate)}`
+            : targets.purple.item,
           result.purpleRate,
         ),
         createStrategyCalculationRow(
           "藍字",
-          strategyPinnedIds.has("blue") ? "已釘選" : `${targets.blue.item}（群組${targets.blue.groupId}）`,
+          strategyPinnedIds.has("blue")
+            ? `已釘選・未釘時 ${formatProbability(result.blueUnpinnedRate)}`
+            : `${targets.blue.item}（群組${targets.blue.groupId}）`,
           result.blueRate,
         ),
         createStrategyCalculationRow(
