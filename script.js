@@ -11,6 +11,50 @@
   const GRADE_HIGH = "high";
   const MAX_AUTOCOMPLETE_RESULTS = 20;
 
+  // 遊戲參數整理.txt 的推薦標記：** ＝想要的中級（藍字）能力，# ＝想要的低級（白字）能力。
+  // 依等級分開存放，名稱對不上等級就不會被標記，可在啟動檢查時抓出兩邊不同步。
+  const RECOMMENDED_ITEMS_BY_GRADE = new Map([
+    [GRADE_INTERMEDIATE, new Set([
+      "餅乾造成的傷害量增加41-50%",
+      "黃色技能傷害量增加41-50%",
+      "紅色技能傷害量增加41-50%",
+      "藍色技能傷害量增加41-50%",
+      "出現更多技能能量果凍",
+      "果凍魔法師餅乾傷害量增加50%",
+      "閃避大師餅乾傷害量增加50%",
+      "2個果凍魔法師以上時餅乾傷害量增加50%",
+      "2個閃避大師以上時餅乾傷害量增加50%",
+    ])],
+    [GRADE_LOW, new Set([
+      "餅乾造成的傷害量增加21-30%",
+      "餅乾造成的傷害量增加31-40%",
+      "黃色技能傷害量增加21-30%",
+      "黃色技能傷害量增加31-40%",
+      "紅色技能傷害量增加21-30%",
+      "紅色技能傷害量增加31-40%",
+      "藍色技能傷害量增加21-30%",
+      "藍色技能傷害量增加31-40%",
+      "黃色技能能量獲得量+10-12%",
+      "紅色技能能量獲得量+10-12%",
+      "藍色技能能量獲得量+10-12%",
+      "遊戲速度加快16-20%",
+      "體力恢復量增加16-20%",
+      "無視障礙物衝撞機率70%",
+      "無視障礙物衝撞機率85%",
+      "果凍魔法師餅乾傷害量增加30%",
+      "果凍魔法師餅乾傷害量增加40%",
+      "閃避大師餅乾傷害量增加30%",
+      "閃避大師餅乾傷害量增加40%",
+      "2個果凍魔法師以上時餅乾傷害量增加30%",
+      "2個果凍魔法師以上時餅乾傷害量增加40%",
+      "2個閃避大師以上時餅乾傷害量增加30%",
+      "2個閃避大師以上時餅乾傷害量增加40%",
+    ])],
+  ]);
+
+  const isRecommended = (name, grade) =>
+    RECOMMENDED_ITEMS_BY_GRADE.get(grade)?.has(name) ?? false;
+
   const entry = (name, rate, grade = GRADE_LOW) => ({ name, rate, grade });
   const intermediateEntry = (name, rate) => entry(name, rate, GRADE_INTERMEDIATE);
   const ranged = (prefix, values, rates, intermediateIndexes = []) =>
@@ -204,6 +248,7 @@
       item: currentEntry.name,
       itemRate: currentEntry.rate,
       grade: currentEntry.grade,
+      recommended: isRecommended(currentEntry.name, currentEntry.grade),
       isGroupStart: index === 0,
     })),
   );
@@ -218,6 +263,7 @@
     form: document.querySelector("#filter-form"),
     search: document.querySelector("#search-input"),
     group: document.querySelector("#group-filter"),
+    recommended: document.querySelector("#recommended-filter"),
     clear: document.querySelector("#clear-button"),
     body: document.querySelector("#parameter-body"),
     empty: document.querySelector("#empty-state"),
@@ -344,16 +390,44 @@
     return "低級 低級能力 低級屬性";
   }
 
+  function getRecommendedLabel(row) {
+    return row.grade === GRADE_INTERMEDIATE ? "★ 推薦藍字" : "★ 推薦白字";
+  }
+
+  function getRecommendedSearchText(row) {
+    if (!row.recommended) return "";
+    return row.grade === GRADE_INTERMEDIATE
+      ? "推薦 推薦藍字 推薦中級 推薦目標 ★"
+      : "推薦 推薦白字 推薦低級 推薦目標 ★";
+  }
+
   function applyAbilityGrade(element, row) {
     element.classList.add(`ability-grade--${row.grade}`);
   }
 
-  function appendGradeBadge(container, row) {
-    if (row.grade === GRADE_LOW) return;
-    const badge = document.createElement("span");
-    badge.className = `grade-label grade-label--${row.grade}`;
-    badge.textContent = getGradeLabel(row);
-    container.append(badge);
+  function appendAbilityBadges(container, row) {
+    if (row.grade !== GRADE_LOW) {
+      const badge = document.createElement("span");
+      badge.className = `grade-label grade-label--${row.grade}`;
+      badge.textContent = getGradeLabel(row);
+      container.append(badge);
+    }
+
+    if (row.recommended) {
+      const badge = document.createElement("span");
+      badge.className = "grade-label grade-label--recommended";
+      badge.textContent = "★推薦";
+      container.append(badge);
+    }
+  }
+
+  // 手機版把每個 td 變成兩欄格線，名稱與徽章必須包在同一個 inline 容器裡才不會各自佔一格。
+  function createAbilityContent(row, highlightTokens = []) {
+    const content = document.createElement("span");
+    content.className = "ability-cell";
+    addHighlightedText(content, row.item, highlightTokens);
+    appendAbilityBadges(content, row);
+    return content;
   }
 
   function createGroupIdentity(groupId) {
@@ -379,7 +453,9 @@
     const tableRow = document.createElement("tr");
     tableRow.dataset.item = row.item;
     tableRow.dataset.grade = row.grade;
+    tableRow.dataset.recommended = String(row.recommended);
     if (row.isGroupStart) tableRow.classList.add("group-start");
+    if (row.recommended) tableRow.classList.add("is-recommended");
 
     const groupCell = createCell("群組");
     groupCell.append(createGroupIdentity(row.groupId));
@@ -389,8 +465,7 @@
 
     const itemCell = createCell("附加能力");
     applyAbilityGrade(itemCell, row);
-    addHighlightedText(itemCell, row.item, highlightTokens);
-    appendGradeBadge(itemCell, row);
+    itemCell.append(createAbilityContent(row, highlightTokens));
 
     const itemRateCell = createCell("項目機率", "rate");
     itemRateCell.textContent = formatRate(row.itemRate);
@@ -420,8 +495,11 @@
     const queryTokens = normalize(rawQuery).split(" ").filter(Boolean);
     const highlightTokens = rawQuery.split(/\s+/).filter(Boolean);
     const selectedGroup = elements.group.value;
+    const recommendedOnly = Boolean(elements.recommended.checked);
 
     const filteredRows = rows.filter((row) => {
+      if (recommendedOnly && !row.recommended) return false;
+
       const matchesGroup = selectedGroup === "all" || String(row.groupId) === selectedGroup;
       if (!matchesGroup) return false;
 
@@ -432,6 +510,7 @@
         row.item,
         formatRate(row.itemRate),
         getGradeSearchText(row),
+        getRecommendedSearchText(row),
       ].join(" "));
 
       return queryTokens.every((token) => searchable.includes(token));
@@ -451,12 +530,13 @@
     elements.body.replaceChildren(fragment);
     elements.empty.hidden = filteredRows.length !== 0;
     elements.resultCount.textContent = `顯示 ${filteredRows.length} / ${rows.length} 筆`;
-    elements.clear.disabled = rawQuery === "" && selectedGroup === "all";
+    elements.clear.disabled = rawQuery === "" && selectedGroup === "all" && !recommendedOnly;
   }
 
   function clearFilters() {
     elements.search.value = "";
     elements.group.value = "all";
+    elements.recommended.checked = false;
     applyFilters();
     elements.search.focus();
   }
@@ -587,6 +667,7 @@
           formatRate(row.groupRate),
           formatRate(row.itemRate),
           getGradeSearchText(row),
+          getRecommendedSearchText(row),
         ].join(" "));
 
         if (!tokens.every((token) => searchable.includes(token))) return null;
@@ -680,6 +761,13 @@
       intermediateGrade.className = "autocomplete-tag autocomplete-tag--intermediate";
       intermediateGrade.textContent = "中級・31階以上必定出現";
       badges.append(intermediateGrade);
+    }
+
+    if (row.recommended) {
+      const recommended = document.createElement("span");
+      recommended.className = "autocomplete-tag autocomplete-tag--recommended";
+      recommended.textContent = getRecommendedLabel(row);
+      badges.append(recommended);
     }
 
     option.append(name, meta, badges);
@@ -814,7 +902,10 @@
       : matchedProperty.grade === GRADE_INTERMEDIATE
         ? "中級能力・31階以上必定出現"
         : "低級能力";
-    feedback.textContent = `群組 ${matchedProperty.groupId}｜群組機率 ${formatRate(matchedProperty.groupRate)}｜群組內機率 ${formatRate(matchedProperty.itemRate)}｜${gradeLabel}`;
+    const recommendedLabel = matchedProperty.recommended
+      ? `｜${getRecommendedLabel(matchedProperty)}`
+      : "";
+    feedback.textContent = `群組 ${matchedProperty.groupId}｜群組機率 ${formatRate(matchedProperty.groupRate)}｜群組內機率 ${formatRate(matchedProperty.itemRate)}｜${gradeLabel}${recommendedLabel}`;
     feedback.classList.add("is-valid");
   }
 
@@ -918,9 +1009,8 @@
   function createProbabilityRow(row) {
     const tableRow = document.createElement("tr");
     const itemCell = createCell("現有屬性");
-    itemCell.textContent = row.item;
     applyAbilityGrade(itemCell, row);
-    appendGradeBadge(itemCell, row);
+    itemCell.append(createAbilityContent(row));
 
     const groupCell = createCell("群組");
     groupCell.append(createGroupIdentity(row.groupId));
@@ -968,7 +1058,7 @@
       name.className = "blocked-item__name";
       name.textContent = row.item;
       applyAbilityGrade(name, row);
-      appendGradeBadge(name, row);
+      appendAbilityBadges(name, row);
 
       const meta = document.createElement("span");
       meta.className = "blocked-item__meta";
@@ -999,8 +1089,10 @@
     header.className = "blocked-group-card__header";
     const title = document.createElement("h3");
     title.textContent = "跨群組中級能力・不可再刷到";
+    const blockedRecommended = blockedRows.filter((row) => row.recommended).length;
     const summary = document.createElement("p");
-    summary.textContent = `已選 1 個中級能力｜另外排除 ${blockedRows.length} 個中級項目`;
+    summary.textContent = `已選 1 個中級能力｜另外排除 ${blockedRows.length} 個中級項目`
+      + (blockedRecommended === 0 ? "" : `（含 ${blockedRecommended} 個 ★ 推薦藍字）`);
     header.append(title, summary);
 
     const list = document.createElement("ul");
@@ -1014,7 +1106,7 @@
       name.className = "blocked-item__name";
       name.textContent = row.item;
       applyAbilityGrade(name, row);
-      appendGradeBadge(name, row);
+      appendAbilityBadges(name, row);
 
       const meta = document.createElement("span");
       meta.className = "blocked-item__meta";
@@ -1195,7 +1287,8 @@
     }
 
     feedback.textContent = `群組 ${matched.groupId}｜群組機率 ${formatRate(matched.groupRate)}`
-      + `｜群組內機率 ${formatRate(matched.itemRate)}｜每格命中率 ${formatOverallRate(matched)}`;
+      + `｜群組內機率 ${formatRate(matched.itemRate)}｜每格命中率 ${formatOverallRate(matched)}`
+      + (matched.recommended ? `｜${getRecommendedLabel(matched)}` : "");
     feedback.classList.add("is-valid");
   }
 
@@ -1278,8 +1371,8 @@
     const tableRow = document.createElement("tr");
 
     const itemCell = createCell("目標");
-    itemCell.textContent = row.item;
     applyAbilityGrade(itemCell, row);
+    itemCell.append(createAbilityContent(row));
 
     const groupCell = createCell("群組");
     groupCell.textContent = `群組 ${row.groupId}`;
@@ -1348,7 +1441,7 @@
       input.className = "property-input";
       input.type = "text";
       input.value = slot.value;
-      input.placeholder = "輸入白字屬性，例如：暴擊傷害增加70-80%";
+      input.placeholder = "輸入白字屬性，或打「推薦白字」看 23 個推薦目標";
       input.autocomplete = "off";
       input.setAttribute("aria-describedby", feedbackId);
       input.setAttribute("role", "combobox");
@@ -1474,6 +1567,7 @@
   elements.form.addEventListener("submit", (event) => event.preventDefault());
   elements.search.addEventListener("input", applyFilters);
   elements.group.addEventListener("change", applyFilters);
+  elements.recommended.addEventListener("change", applyFilters);
   elements.clear.addEventListener("click", clearFilters);
   TAB_VIEWS.forEach(([name, getTab], index) => {
     const tab = getTab();
@@ -1520,7 +1614,19 @@
   renderStrategy();
   applyFilters();
 
-  if (groups.length !== 19 || rows.length !== 187) {
-    console.warn(`資料筆數與預期不符：${groups.length} 個群組、${rows.length} 筆項目。`);
+  // 推薦清單以「名稱＋等級」比對，任何一筆對不上就代表資料與文字檔已經不同步。
+  const expectedRecommendedCount = [...RECOMMENDED_ITEMS_BY_GRADE.values()]
+    .reduce((total, items) => total + items.size, 0);
+  const recommendedCount = rows.filter((row) => row.recommended).length;
+
+  if (
+    groups.length !== 19
+    || rows.length !== 187
+    || recommendedCount !== expectedRecommendedCount
+  ) {
+    console.warn(
+      `資料筆數與預期不符：${groups.length} 個群組、${rows.length} 筆項目、`
+      + `${recommendedCount} 筆推薦能力（應為 ${expectedRecommendedCount} 筆）。`,
+    );
   }
 })();

@@ -84,9 +84,14 @@
           </div>
 
           <button class="button button--secondary" id="clear-button" type="button">清除條件</button>
+
+          <label class="filter-toggle" for="recommended-filter">
+            <input id="recommended-filter" name="recommended" type="checkbox">
+            <span>只看 ★ 推薦能力（32 個）</span>
+          </label>
         </form>
 
-        <p class="search-tip">可同時輸入多個詞，例如「藍色 13-15%」，結果會符合所有關鍵字。</p>
+        <p class="search-tip">可同時輸入多個詞，例如「藍色 13-15%」，結果會符合所有關鍵字；輸入「推薦藍字」或「推薦白字」也可以只看該類推薦目標。</p>
       </section>
 
       <details class="rules-card">
@@ -96,6 +101,7 @@
           <p>附加能力稀有度可由遊戲內字體顏色辨識：高級（紫色）、中級（藍色）、低級（白色）。31階以上必定出現 1 種中級能力；301階以上必定出現 1 種高級能力。</p>
           <p class="rule-highlight"><strong>群組 19 全部是高級能力</strong>，每顆召喚石只能出現 1 個高級能力。</p>
           <p class="rule-highlight"><strong>群組 1～18 中，原始資料以 * 標示的項目是中級能力</strong>。每顆召喚石跨群組合計只能出現 1 個中級能力；選定後，其他群組的中級項目也會一併排除。</p>
+          <p class="rule-highlight rule-highlight--recommended"><strong>原始資料的推薦標記：<code>**</code> ＝ 9 個 ★ 推薦藍字（中級），<code>#</code> ＝ 23 個 ★ 推薦白字（低級）</strong>，也就是這份整理裡真正想抽到的目標，合計 32 個。藍字名額只有 1 個，那 9 個彼此互斥；白字有 3 格，可從那 23 個裡湊。</p>
         </div>
       </details>
 
@@ -140,7 +146,7 @@
           <p class="selection-count" id="selection-count" role="status" aria-live="polite">已選擇 0 / 5 個</p>
         </div>
 
-        <p class="analysis-intro">從建議清單選擇 1～5 個現有屬性，即可查看各自機率。相同群組不可重複，高級與中級能力也各自只能選擇 1 個。</p>
+        <p class="analysis-intro">從建議清單選擇 1～5 個現有屬性，即可查看各自機率。相同群組不可重複，高級與中級能力也各自只能選擇 1 個。清單與表格中標示 ★ 推薦的，就是原始資料標 <code>**</code> 的推薦藍字與標 <code>#</code> 的推薦白字。</p>
 
         <div class="property-slots" id="property-slots"></div>
 
@@ -210,7 +216,7 @@
         </div>
 
         <p class="analysis-intro">
-          前提：這顆召喚石的紫字（群組19）與藍字都已經是想要的，只差 2 個白字。
+          前提：這顆召喚石的紫字（群組19）已經是想要的，藍字也已經是 ★ 推薦藍字其中之一，只差 2 個白字。
           釘選只能保留 2 格、其餘 3 格必須重骰，所以要決定「連紫字一起釘」還是「放掉紫字、改釘已到手的白字」。
         </p>
 
@@ -225,9 +231,10 @@
         <summary>計算方式與假設</summary>
         <div class="rules-card__body">
           <p>紫字固定來自群組 19（301階以上必定出現），9 個項目等機率，命中想要的那個為 <strong>1/9</strong>。</p>
-          <p>藍字在兩種方案中都全程釘住，屬於共同項，不影響比較，因此不需輸入。</p>
+          <p>★ 推薦藍字在兩種方案中都全程釘住，屬於共同項，不影響比較，因此不需輸入。</p>
           <p>白字每格命中率 <strong>a ＝ 群組機率 × 群組內項目機率</strong>，即「現有屬性分析」的綜合機率。3 個白字格近似為獨立抽取；群組不可重複造成的微小相關性會讓實際成功率略高於此處估計，兩方案同向，不影響結論。</p>
           <p class="rule-highlight">目標只能選<strong>低級（白字）</strong>項目，因為紫字與藍字在此情境已固定。兩個目標若同群組則不可能並存，清單會自動排除。</p>
+          <p class="rule-highlight rule-highlight--recommended">建議從 <strong>23 個 ★ 推薦白字</strong>（原始資料標 <code>#</code>）裡挑目標；在搜尋欄輸入「推薦白字」即可只看這些項目。</p>
           <p>完整推導、交叉點與數值表見 repo 內的 <code>釘選策略分析.md</code>。</p>
         </div>
       </details>
