@@ -841,9 +841,14 @@
     return (rowsByGroup.get(groupId) ?? []).filter((row) => row.grade === grade);
   }
 
+  // 同群組同等級的項目機率合計，也就是把原始項目機率換算成群組內命中率時的分母。
+  function getGradeItemRateTotal(row) {
+    return getRowsForGrade(row.groupId, row.grade)
+      .reduce((sum, gradeRow) => sum + gradeRow.itemRate, 0);
+  }
+
   function getItemRateInGrade(row) {
-    const gradeRows = getRowsForGrade(row.groupId, row.grade);
-    const total = gradeRows.reduce((sum, row) => sum + row.itemRate, 0);
+    const total = getGradeItemRateTotal(row);
     return total > 0 ? row.itemRate / total : 0;
   }
 
@@ -943,9 +948,13 @@
     const itemRate = getItemRateInGrade(matched);
     // 群組11、12這類單一能力群組的群組內命中率必為100%，直接標成「必中」會被誤讀成穩拿，
     // 改寫成條件敘述，真正的機率交給整顆石頭命中率呈現。
+    // 參數速查表列的是原始項目機率（分母是整個群組），這裡的分母只有同等級項目，
+    // 同一個能力會出現兩個數字；把算式攤開讓兩邊對得起來。
     const itemRateText = itemRate >= 1
       ? "群組內唯一同級能力・抽中群組即命中"
-      : `群組內指定能力命中率 ${formatProbability(itemRate)}`;
+      : `群組內指定能力命中率 ${formatProbability(itemRate)}`
+        + `（原始項目機率 ${formatRate(matched.itemRate)}`
+        + ` ÷ 群組內${getGradeLabel(matched)}項目合計 ${formatRate(getGradeItemRateTotal(matched))}）`;
     // 一顆301階石頭出現該能力的機率，口徑與釘選策略的計算一致：
     // 群組機率要在「同等級可抽的群組」之間重新正規化，不能直接除以100；
     // 白字有三格且群組不可重複，需用聯合機率遞迴，只算一格會低估約三倍。
