@@ -211,8 +211,10 @@
   const elements = {
     lookupTab: document.querySelector("#lookup-tab"),
     ownedTab: document.querySelector("#owned-tab"),
+    strategyTab: document.querySelector("#strategy-tab"),
     lookupPanel: document.querySelector("#lookup-panel"),
     ownedPanel: document.querySelector("#owned-panel"),
+    strategyPanel: document.querySelector("#strategy-panel"),
     form: document.querySelector("#filter-form"),
     search: document.querySelector("#search-input"),
     group: document.querySelector("#group-filter"),
@@ -231,6 +233,10 @@
     blockedCount: document.querySelector("#blocked-count"),
     blockedEmpty: document.querySelector("#blocked-empty"),
     blockedGroups: document.querySelector("#blocked-groups"),
+    strategyTargets: document.querySelector("#strategy-targets"),
+    strategyCount: document.querySelector("#strategy-count"),
+    strategyEmpty: document.querySelector("#strategy-empty"),
+    strategyResult: document.querySelector("#strategy-result"),
   };
 
   if (Object.values(elements).some((element) => !element)) {
@@ -255,14 +261,39 @@
     rows.filter((row) => row.groupId === currentGroup.id),
   ]));
 
-  let nextPropertySlotId = 1;
-  let propertySlotStates = [{
-    id: nextPropertySlotId,
+  const baseSlot = (id) => ({
+    id,
     value: "",
     isOpen: false,
     activeIndex: -1,
     suggestions: [],
-  }];
+  });
+
+  // 兩組欄位共用同一套自動完成，差別只在候選項目的過濾規則與選定後要重畫誰。
+  const createPropertySlot = (id) => ({
+    ...baseSlot(id),
+    idPrefix: "property",
+    getCandidates: getOwnedCandidates,
+    renderFeedback: (slot) => updateSlotFeedback(slot, slot.feedback),
+    onSelect: () => renderAnalysis(),
+  });
+
+  const createTargetSlot = (id) => ({
+    ...baseSlot(id),
+    idPrefix: "target",
+    getCandidates: getTargetCandidates,
+    renderFeedback: (slot) => updateTargetFeedback(slot),
+    onSelect: () => {
+      // 兩個欄位互相牽制（同群組不可並存），選定後兩邊的提示都要重算。
+      strategyTargetStates.forEach((current) => updateTargetFeedback(current));
+      renderStrategy();
+    },
+  });
+
+  let nextPropertySlotId = 1;
+  let propertySlotStates = [createPropertySlot(nextPropertySlotId)];
+  const strategyTargetStates = [createTargetSlot("a"), createTargetSlot("b")];
+  const slotCollections = [() => propertySlotStates, () => strategyTargetStates];
 
   function addHighlightedText(container, text, tokens) {
     const usableTokens = [...new Set(tokens.filter(Boolean))]
@@ -430,24 +461,25 @@
     elements.search.focus();
   }
 
-  function activateTab(tabName, shouldFocus = false) {
-    const showLookup = tabName === "lookup";
-    if (showLookup) closeAllAutocompletes();
-    const tabStates = [
-      [elements.lookupTab, elements.lookupPanel, showLookup],
-      [elements.ownedTab, elements.ownedPanel, !showLookup],
-    ];
+  const TAB_VIEWS = [
+    ["lookup", () => elements.lookupTab, () => elements.lookupPanel],
+    ["owned", () => elements.ownedTab, () => elements.ownedPanel],
+    ["strategy", () => elements.strategyTab, () => elements.strategyPanel],
+  ];
 
-    tabStates.forEach(([tab, panel, isActive]) => {
+  function activateTab(tabName, shouldFocus = false) {
+    const activeName = TAB_VIEWS.some(([name]) => name === tabName) ? tabName : "lookup";
+    closeAllAutocompletes();
+
+    TAB_VIEWS.forEach(([name, getTab, getPanel]) => {
+      const tab = getTab();
+      const isActive = name === activeName;
       tab.classList.toggle("is-active", isActive);
       tab.setAttribute("aria-selected", String(isActive));
       tab.tabIndex = isActive ? 0 : -1;
-      panel.hidden = !isActive;
+      getPanel().hidden = !isActive;
+      if (isActive && shouldFocus) tab.focus();
     });
-
-    if (shouldFocus) {
-      (showLookup ? elements.lookupTab : elements.ownedTab).focus();
-    }
   }
 
   function resolveProperty(value) {
@@ -515,20 +547,38 @@
       .map((record) => record.row);
   }
 
-  function getAutocompleteMatches(slot) {
-    const query = normalize(slot.value);
-    const tokens = query.split(" ").filter(Boolean);
+  // 現有屬性分析：排除已占用的群組，以及已被占用的中級／高級名額。
+  function getOwnedCandidates(slot) {
     const selectedRows = getAcceptedRows(slot.id);
     const selectedGroups = new Set(selectedRows.map((row) => row.groupId));
     const hasIntermediate = selectedRows.some((row) => row.grade === GRADE_INTERMEDIATE);
     const hasHigh = selectedRows.some((row) => row.grade === GRADE_HIGH);
 
-    const matches = rows
-      .map((row) => {
-        if (selectedGroups.has(row.groupId)) return null;
-        if (row.grade === GRADE_INTERMEDIATE && hasIntermediate) return null;
-        if (row.grade === GRADE_HIGH && hasHigh) return null;
+    return rows.filter((row) => {
+      if (selectedGroups.has(row.groupId)) return false;
+      if (row.grade === GRADE_INTERMEDIATE && hasIntermediate) return false;
+      if (row.grade === GRADE_HIGH && hasHigh) return false;
+      return true;
+    });
+  }
 
+  // 釘選策略：目標只能是低級（白字），且兩個目標不能同群組（群組不可重複抽取）。
+  function getTargetCandidates(slot) {
+    const takenGroups = new Set(strategyTargetStates
+      .filter((current) => current.id !== slot.id)
+      .map((current) => resolveProperty(current.value))
+      .filter(Boolean)
+      .map((row) => row.groupId));
+
+    return rows.filter((row) => row.grade === GRADE_LOW && !takenGroups.has(row.groupId));
+  }
+
+  function getAutocompleteMatches(slot) {
+    const query = normalize(slot.value);
+    const tokens = query.split(" ").filter(Boolean);
+
+    const matches = slot.getCandidates(slot)
+      .map((row) => {
         const normalizedItem = normalize(row.item);
         const searchable = normalize([
           row.item,
@@ -578,29 +628,28 @@
   }
 
   function closeAllAutocompletes(excludedSlotId = null) {
-    propertySlotStates.forEach((slot) => {
-      if (slot.id !== excludedSlotId) closeAutocomplete(slot);
+    slotCollections.forEach((getSlots) => {
+      getSlots().forEach((slot) => {
+        if (slot.id !== excludedSlotId) closeAutocomplete(slot);
+      });
     });
   }
 
   function selectAutocompleteRow(slot, row) {
-    const selectedRows = getAcceptedRows(slot.id);
-    const groupAlreadyUsed = selectedRows.some((selectedRow) => selectedRow.groupId === row.groupId);
-    const gradeAlreadyUsed = selectedRows.some((selectedRow) => selectedRow.grade === row.grade);
-    if (groupAlreadyUsed) return;
-    if (row.grade !== GRADE_LOW && gradeAlreadyUsed) return;
+    // 候選清單已套用該欄位的所有排除規則，不在清單內就代表這個選擇不合法。
+    if (!slot.getCandidates(slot).includes(row)) return;
 
     slot.value = row.item;
     if (slot.input) slot.input.value = row.item;
-    if (slot.feedback) updateSlotFeedback(slot, slot.feedback);
+    if (slot.feedback) slot.renderFeedback(slot);
     closeAutocomplete(slot);
-    renderAnalysis();
+    slot.onSelect(slot, row);
   }
 
   function createAutocompleteOption(slot, suggestion, index) {
     const { row } = suggestion;
     const option = document.createElement("button");
-    option.id = `property-option-${slot.id}-${index}`;
+    option.id = `${slot.idPrefix}-option-${slot.id}-${index}`;
     option.className = "autocomplete-option";
     option.type = "button";
     option.tabIndex = -1;
@@ -679,7 +728,7 @@
 
     slot.listbox.replaceChildren(content);
     const activeOptionId = slot.activeIndex >= 0
-      ? `property-option-${slot.id}-${slot.activeIndex}`
+      ? `${slot.idPrefix}-option-${slot.id}-${slot.activeIndex}`
       : "";
     slot.input.setAttribute("aria-activedescendant", activeOptionId);
     if (slot.activeIndex >= 0) {
@@ -1053,13 +1102,7 @@
     if (propertySlotStates.length >= 5) return;
     closeAllAutocompletes();
     nextPropertySlotId += 1;
-    propertySlotStates.push({
-      id: nextPropertySlotId,
-      value: "",
-      isOpen: false,
-      activeIndex: -1,
-      suggestions: [],
-    });
+    propertySlotStates.push(createPropertySlot(nextPropertySlotId));
     const lastInput = renderPropertySlots();
     renderAnalysis();
     if (lastInput) lastInput.focus();
@@ -1068,35 +1111,380 @@
   function clearAnalysis() {
     closeAllAutocompletes();
     nextPropertySlotId += 1;
-    propertySlotStates = [{
-      id: nextPropertySlotId,
-      value: "",
-      isOpen: false,
-      activeIndex: -1,
-      suggestions: [],
-    }];
+    propertySlotStates = [createPropertySlot(nextPropertySlotId)];
     const firstInput = renderPropertySlots();
     renderAnalysis();
     if (firstInput) firstInput.focus();
+  }
+
+  // ---- 釘選策略評估 ----
+  // 模型：紫字固定來自群組19（命中想要的為 1/9），藍字在兩方案都全程釘住（共同項，可消去），
+  // 3 格白字近似為獨立抽取。完整推導與交叉點見 釘選策略分析.md。
+  const TARGET_LABELS = ["目標白字 1", "目標白字 2"];
+  const slotHitRate = (row) => row.groupRate * row.itemRate / 10000;
+  const missAll = (rate, slots) => Math.pow(1 - rate, slots);
+  // 階段2 單轉成功 ＝ 紫字中想要的(1/9) 且 2 格白字至少命中剩下那個目標
+  const stage2Rate = (rate) => (1 / 9) * (1 - missAll(rate, 2));
+  const formatRolls = (value) => Math.round(value).toLocaleString("en-US");
+
+  function evaluatePinStrategies(rateA, rateB) {
+    const hard = Math.min(rateA, rateB);
+    const easy = Math.max(rateA, rateB);
+
+    // 方案a：釘藍+紫，重骰 3 白，單轉要同時湊到兩個目標（排容原理）
+    const bothPerRoll = 1 - missAll(rateA, 3) - missAll(rateB, 3) + missAll(rateA + rateB, 3);
+    const hardOnly = 1 - missAll(hard, 3) - bothPerRoll;
+    const easyOnly = 1 - missAll(easy, 3) - bothPerRoll;
+    const noneHit = 1 - bothPerRoll - hardOnly - easyOnly;
+
+    // 階段2 的成本由「還沒到手的那個目標」決定
+    const costWhenHardBanked = 1 / stage2Rate(easy);
+    const costWhenEasyBanked = 1 / stage2Rate(hard);
+
+    const planA = 1 / bothPerRoll;
+    const bankFirst =
+      (1 + hardOnly * costWhenHardBanked + easyOnly * costWhenEasyBanked) / (1 - noneHit);
+    const bankHard = (1 + hardOnly * costWhenHardBanked) / (1 - easyOnly - noneHit);
+    const preferBankHard = bankHard < bankFirst;
+    const planB = preferBankHard ? bankHard : bankFirst;
+
+    return {
+      bothPerRoll,
+      planA,
+      bankFirst,
+      bankHard,
+      planB,
+      preferBankHard,
+      recommended: planA < planB ? "a" : "b",
+    };
+  }
+
+  function updateTargetFeedback(slot) {
+    const feedback = slot.feedback;
+    if (!feedback) return;
+
+    const value = slot.value.trim();
+    const matched = resolveProperty(value);
+    feedback.className = "property-slot__feedback";
+
+    if (!value) {
+      feedback.textContent = "請輸入關鍵字，並從建議清單選擇白字目標。";
+      return;
+    }
+
+    if (!matched) {
+      feedback.textContent = "尚未找到完整屬性，請繼續輸入或從清單選取。";
+      feedback.classList.add("is-invalid");
+      return;
+    }
+
+    if (matched.grade !== GRADE_LOW) {
+      feedback.textContent =
+        `「${getGradeLabel(matched)}」能力不能當作白字目標；此情境的紫字與藍字已經固定。`;
+      feedback.classList.add("is-invalid");
+      return;
+    }
+
+    const otherSlot = strategyTargetStates.find((current) => current.id !== slot.id);
+    const otherRow = otherSlot ? resolveProperty(otherSlot.value) : null;
+    if (otherRow && otherRow.groupId === matched.groupId) {
+      feedback.textContent =
+        `群組 ${matched.groupId} 已被另一個目標占用；群組不可重複抽取，兩個目標不可能同時存在。`;
+      feedback.classList.add("is-invalid");
+      return;
+    }
+
+    feedback.textContent = `群組 ${matched.groupId}｜群組機率 ${formatRate(matched.groupRate)}`
+      + `｜群組內機率 ${formatRate(matched.itemRate)}｜每格命中率 ${formatOverallRate(matched)}`;
+    feedback.classList.add("is-valid");
+  }
+
+  function getStrategyTargets() {
+    const picked = strategyTargetStates.map((slot) => resolveProperty(slot.value));
+    if (picked.some((row) => !row || row.grade !== GRADE_LOW)) return null;
+    if (picked[0].groupId === picked[1].groupId) return null;
+    return picked;
+  }
+
+  function createStrategyEmptyState(chosenCount, hasGroupClash) {
+    const title = document.createElement("p");
+    title.className = "empty-state__title";
+    const detail = document.createElement("p");
+
+    if (hasGroupClash) {
+      title.textContent = "兩個目標在同一個群組";
+      detail.textContent = "群組不可重複抽取，這兩個能力不可能同時出現在一顆召喚石上，請換掉其中一個。";
+    } else {
+      title.textContent = `尚未選滿 2 個目標（已選 ${chosenCount} 個）`;
+      detail.textContent = "兩個白字目標都選好後，這裡會列出兩種釘法的單轉成功率與期望轉數。";
+    }
+
+    const fragment = document.createDocumentFragment();
+    fragment.append(title, detail);
+    return fragment;
+  }
+
+  function createStrategyVerdict(result, harder, easier) {
+    const verdict = document.createElement("div");
+    verdict.className = "strategy-verdict";
+
+    const best = result.recommended === "a" ? result.planA : result.planB;
+    const worst = result.recommended === "a" ? result.planB : result.planA;
+
+    const badge = document.createElement("p");
+    badge.className = "strategy-verdict__badge";
+    badge.textContent = result.recommended === "a"
+      ? "建議：方案 a — 釘住藍字 + 紫字"
+      : "建議：方案 b — 釘住藍字 + 已到手的白字，放掉紫字";
+
+    const headline = document.createElement("p");
+    headline.className = "strategy-verdict__headline";
+    headline.textContent = `期望 ${formatRolls(best)} 轉完成，`
+      + `比另一個方案的 ${formatRolls(worst)} 轉快 ${(worst / best).toFixed(1)} 倍`;
+
+    verdict.append(badge, headline);
+
+    if (result.recommended === "b") {
+      const policy = document.createElement("p");
+      policy.className = "strategy-verdict__policy";
+      policy.textContent = result.preferBankHard
+        ? `落袋政策：只釘難抽的那個 — 階段 1 專心等「${harder.item}」再釘住，`
+          + `把比較好抽的「${easier.item}」留到階段 2。`
+        : "落袋政策：先到先釘 — 兩個目標命中率接近，中哪個就釘哪個，硬等特定的那個只是浪費轉數。";
+      verdict.append(policy);
+    }
+
+    return verdict;
+  }
+
+  function createStrategyRow(label, perRoll, rolls, isBest) {
+    const tableRow = document.createElement("tr");
+    if (isBest) tableRow.className = "is-best";
+
+    const planCell = createCell("方案");
+    planCell.textContent = label;
+
+    const perRollCell = createCell("單轉成功率", "rate");
+    perRollCell.textContent = perRoll;
+
+    const rollsCell = createCell("期望轉數", "rate");
+    rollsCell.textContent = `${formatRolls(rolls)} 轉`;
+
+    tableRow.append(planCell, perRollCell, rollsCell);
+    return tableRow;
+  }
+
+  function createStrategyTargetRow(row) {
+    const tableRow = document.createElement("tr");
+
+    const itemCell = createCell("目標");
+    itemCell.textContent = row.item;
+    applyAbilityGrade(itemCell, row);
+
+    const groupCell = createCell("群組");
+    groupCell.textContent = `群組 ${row.groupId}`;
+
+    const groupRateCell = createCell("群組機率", "rate");
+    groupRateCell.textContent = formatRate(row.groupRate);
+
+    const itemRateCell = createCell("群組內機率", "rate");
+    itemRateCell.textContent = formatRate(row.itemRate);
+
+    const hitCell = createCell("每格命中率", "rate");
+    hitCell.textContent = formatOverallRate(row);
+
+    tableRow.append(itemCell, groupCell, groupRateCell, itemRateCell, hitCell);
+    return tableRow;
+  }
+
+  function createStrategyTable(caption, headings, bodyRows) {
+    const frame = document.createElement("div");
+    frame.className = "analysis-table-frame";
+
+    const table = document.createElement("table");
+    const captionElement = document.createElement("caption");
+    captionElement.textContent = caption;
+
+    const head = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    headings.forEach((heading) => {
+      const cell = document.createElement("th");
+      cell.setAttribute("scope", "col");
+      cell.textContent = heading;
+      headRow.append(cell);
+    });
+    head.append(headRow);
+
+    const body = document.createElement("tbody");
+    bodyRows.forEach((row) => body.append(row));
+
+    table.append(captionElement, head, body);
+    frame.append(table);
+    return frame;
+  }
+
+  function renderStrategyTargets() {
+    const fragment = document.createDocumentFragment();
+
+    strategyTargetStates.forEach((slot, index) => {
+      const container = document.createElement("div");
+      container.className = "property-slot";
+
+      const number = document.createElement("span");
+      number.className = "property-slot__number";
+      number.textContent = String(index + 1);
+
+      const field = document.createElement("div");
+      field.className = "property-slot__field";
+
+      const inputId = `target-input-${slot.id}`;
+      const feedbackId = `target-feedback-${slot.id}`;
+      const label = document.createElement("label");
+      label.htmlFor = inputId;
+      label.textContent = TARGET_LABELS[index];
+
+      const input = document.createElement("input");
+      input.id = inputId;
+      input.className = "property-input";
+      input.type = "text";
+      input.value = slot.value;
+      input.placeholder = "輸入白字屬性，例如：暴擊傷害增加70-80%";
+      input.autocomplete = "off";
+      input.setAttribute("aria-describedby", feedbackId);
+      input.setAttribute("role", "combobox");
+      input.setAttribute("aria-autocomplete", "list");
+      input.setAttribute("aria-haspopup", "listbox");
+      input.setAttribute("aria-expanded", "false");
+
+      const combobox = document.createElement("div");
+      combobox.className = "property-combobox";
+      const listbox = document.createElement("div");
+      listbox.id = `target-listbox-${slot.id}`;
+      listbox.className = "autocomplete-menu";
+      listbox.setAttribute("role", "listbox");
+      listbox.setAttribute("aria-label", `${TARGET_LABELS[index]} 搜尋結果`);
+      listbox.hidden = true;
+      input.setAttribute("aria-controls", listbox.id);
+
+      const feedback = document.createElement("p");
+      feedback.id = feedbackId;
+
+      slot.input = input;
+      slot.listbox = listbox;
+      slot.feedback = feedback;
+      slot.combobox = combobox;
+      updateTargetFeedback(slot);
+
+      input.addEventListener("input", () => {
+        slot.value = input.value;
+        slot.isOpen = true;
+        slot.activeIndex = -1;
+        strategyTargetStates.forEach((current) => updateTargetFeedback(current));
+        renderAutocomplete(slot);
+        renderStrategy();
+      });
+
+      input.addEventListener("focus", () => {
+        closeAllAutocompletes(slot.id);
+        slot.isOpen = true;
+        slot.activeIndex = -1;
+        renderAutocomplete(slot);
+      });
+
+      input.addEventListener("keydown", (event) => handleAutocompleteKeydown(event, slot));
+
+      combobox.append(input, listbox);
+      field.append(label, combobox, feedback);
+      container.append(number, field);
+      fragment.append(container);
+    });
+
+    elements.strategyTargets.replaceChildren(fragment);
+  }
+
+  function renderStrategy() {
+    const picked = strategyTargetStates.map((slot) => resolveProperty(slot.value));
+    const chosenCount = picked.filter((row) => row && row.grade === GRADE_LOW).length;
+    elements.strategyCount.textContent = `已選擇 ${chosenCount} / 2 個`;
+
+    const targets = getStrategyTargets();
+    if (!targets) {
+      const hasGroupClash = chosenCount === 2 && picked[0].groupId === picked[1].groupId;
+      elements.strategyEmpty.replaceChildren(createStrategyEmptyState(chosenCount, hasGroupClash));
+      elements.strategyEmpty.hidden = false;
+      elements.strategyResult.hidden = true;
+      elements.strategyResult.replaceChildren();
+      return;
+    }
+
+    const [first, second] = targets;
+    const rateFirst = slotHitRate(first);
+    const rateSecond = slotHitRate(second);
+    const result = evaluatePinStrategies(rateFirst, rateSecond);
+    const harder = rateFirst <= rateSecond ? first : second;
+    const easier = rateFirst <= rateSecond ? second : first;
+
+    const comparison = createStrategyTable(
+      "兩種釘法的單轉成功率與期望轉數",
+      ["方案", "單轉成功率", "期望轉數"],
+      [
+        createStrategyRow(
+          "方案 a：釘藍字＋紫字，重骰 3 個白字",
+          `${(result.bothPerRoll * 100).toFixed(4)}%`,
+          result.planA,
+          result.recommended === "a",
+        ),
+        createStrategyRow(
+          "方案 b：先到先釘（中哪個目標就釘哪個）",
+          "分兩階段，見說明",
+          result.bankFirst,
+          result.recommended === "b" && !result.preferBankHard,
+        ),
+        createStrategyRow(
+          "方案 b：只釘難抽的那個",
+          "分兩階段，見說明",
+          result.bankHard,
+          result.recommended === "b" && result.preferBankHard,
+        ),
+      ],
+    );
+
+    const targetTable = createStrategyTable(
+      "兩個目標的群組機率、群組內機率與每格命中率",
+      ["目標", "群組", "群組機率", "群組內機率", "每格命中率"],
+      targets.map((row) => createStrategyTargetRow(row)),
+    );
+
+    const note = document.createElement("p");
+    note.className = "strategy-note";
+    note.textContent = "方案 b 的階段 1 與方案 a 是同一個動作（釘藍字＋紫字、重骰 3 個白字），"
+      + "只是中 1 個目標就落袋、改打階段 2；因此方案 b 是方案 a 的超集，期望轉數不可能更差。"
+      + "階段 1 若一轉同時中 2 個目標，直接收工。";
+
+    elements.strategyResult.replaceChildren(
+      createStrategyVerdict(result, harder, easier),
+      comparison,
+      targetTable,
+      note,
+    );
+    elements.strategyResult.hidden = false;
+    elements.strategyEmpty.hidden = true;
   }
 
   elements.form.addEventListener("submit", (event) => event.preventDefault());
   elements.search.addEventListener("input", applyFilters);
   elements.group.addEventListener("change", applyFilters);
   elements.clear.addEventListener("click", clearFilters);
-  elements.lookupTab.addEventListener("click", () => activateTab("lookup"));
-  elements.ownedTab.addEventListener("click", () => activateTab("owned"));
-  elements.lookupTab.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowRight") {
+  TAB_VIEWS.forEach(([name, getTab], index) => {
+    const tab = getTab();
+    tab.addEventListener("click", () => activateTab(name));
+    tab.addEventListener("keydown", (event) => {
+      const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+      if (step === 0) return;
       event.preventDefault();
-      activateTab("owned", true);
-    }
-  });
-  elements.ownedTab.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      activateTab("lookup", true);
-    }
+      const next = (index + step + TAB_VIEWS.length) % TAB_VIEWS.length;
+      activateTab(TAB_VIEWS[next][0], true);
+    });
   });
   elements.addProperty.addEventListener("click", addPropertySlot);
   elements.clearAnalysis.addEventListener("click", clearAnalysis);
@@ -1119,8 +1507,8 @@
   });
 
   document.addEventListener("pointerdown", (event) => {
-    const clickedInsideAutocomplete = propertySlotStates.some((slot) =>
-      slot.combobox && slot.combobox.contains(event.target));
+    const clickedInsideAutocomplete = slotCollections.some((getSlots) =>
+      getSlots().some((slot) => slot.combobox && slot.combobox.contains(event.target)));
     if (!clickedInsideAutocomplete) closeAllAutocompletes();
   });
 
@@ -1128,6 +1516,8 @@
   populateGroupFilter();
   renderPropertySlots();
   renderAnalysis();
+  renderStrategyTargets();
+  renderStrategy();
   applyFilters();
 
   if (groups.length !== 19 || rows.length !== 187) {

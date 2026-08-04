@@ -41,6 +41,16 @@
         data-tab="owned"
         tabindex="-1"
       >現有屬性分析</button>
+      <button
+        class="page-tab"
+        id="strategy-tab"
+        type="button"
+        role="tab"
+        aria-selected="false"
+        aria-controls="strategy-panel"
+        data-tab="strategy"
+        tabindex="-1"
+      >釘選策略評估</button>
     </nav>
 
     <div id="lookup-panel" role="tabpanel" aria-labelledby="lookup-tab">
@@ -187,6 +197,40 @@
         </div>
         <div class="blocked-groups" id="blocked-groups"></div>
       </section>
+    </div>
+
+    <div id="strategy-panel" role="tabpanel" aria-labelledby="strategy-tab" hidden>
+      <section class="analysis-panel" aria-labelledby="strategy-title">
+        <div class="section-heading analysis-heading">
+          <div>
+            <p class="section-heading__kicker">PIN STRATEGY</p>
+            <h2 id="strategy-title">選 2 個還沒到手的白字目標</h2>
+          </div>
+          <p class="selection-count" id="strategy-count" role="status" aria-live="polite">已選擇 0 / 2 個</p>
+        </div>
+
+        <p class="analysis-intro">
+          前提：這顆召喚石的紫字（群組19）與藍字都已經是想要的，只差 2 個白字。
+          釘選只能保留 2 格、其餘 3 格必須重骰，所以要決定「連紫字一起釘」還是「放掉紫字、改釘已到手的白字」。
+        </p>
+
+        <div class="property-slots" id="strategy-targets"></div>
+
+        <div class="analysis-empty" id="strategy-empty"></div>
+
+        <div class="strategy-result" id="strategy-result" hidden></div>
+      </section>
+
+      <details class="rules-card">
+        <summary>計算方式與假設</summary>
+        <div class="rules-card__body">
+          <p>紫字固定來自群組 19（301階以上必定出現），9 個項目等機率，命中想要的那個為 <strong>1/9</strong>。</p>
+          <p>藍字在兩種方案中都全程釘住，屬於共同項，不影響比較，因此不需輸入。</p>
+          <p>白字每格命中率 <strong>a ＝ 群組機率 × 群組內項目機率</strong>，即「現有屬性分析」的綜合機率。3 個白字格近似為獨立抽取；群組不可重複造成的微小相關性會讓實際成功率略高於此處估計，兩方案同向，不影響結論。</p>
+          <p class="rule-highlight">目標只能選<strong>低級（白字）</strong>項目，因為紫字與藍字在此情境已固定。兩個目標若同群組則不可能並存，清單會自動排除。</p>
+          <p>完整推導、交叉點與數值表見 repo 內的 <code>釘選策略分析.md</code>。</p>
+        </div>
+      </details>
     </div>
   </main>
 

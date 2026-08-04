@@ -25,7 +25,7 @@ if /i not "%CURRENT_BRANCH%"=="main" goto :wrong_branch
 
 echo.
 echo [1/3] Preparing website files...
-call git add -- index.html styles.css script.js README.md .nojekyll update-site.bat "*.bat"
+call git add -- index.html styles.css script.js README.md .nojekyll update-site.bat "*.bat" "*.md"
 if errorlevel 1 goto :add_failed
 
 call git diff --cached --quiet

@@ -922,6 +922,62 @@ mark {
   background: #fff0e7;
 }
 
+.strategy-verdict {
+  margin-top: 1.2rem;
+  padding: 1.1rem 1.25rem;
+  background: linear-gradient(135deg, var(--teal-soft), var(--surface-strong));
+  border: 1px solid var(--teal);
+  border-radius: var(--radius-md);
+}
+
+.strategy-verdict__badge {
+  margin: 0;
+  color: var(--teal);
+  font-size: 0.95rem;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+}
+
+.strategy-verdict__headline {
+  margin: 0.45rem 0 0;
+  color: var(--ink);
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.strategy-verdict__policy {
+  margin: 0.6rem 0 0;
+  padding-top: 0.6rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.65;
+  border-top: 1px dashed var(--teal);
+}
+
+.strategy-result tbody tr.is-best {
+  background: var(--teal-soft);
+}
+
+.strategy-result tbody tr.is-best td:first-child {
+  font-weight: 950;
+  box-shadow: inset 3px 0 0 var(--teal);
+}
+
+.strategy-result td:first-child {
+  min-width: 16rem;
+}
+
+.strategy-note {
+  margin: 1rem 0 0;
+  padding: 0.85rem 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.7;
+  background: #fffaf0;
+  border: 1px dashed #ddc58d;
+  border-radius: var(--radius-md);
+}
+
 .footer {
   display: flex;
   justify-content: space-between;
@@ -1101,7 +1157,8 @@ mark {
     width: auto;
   }
 
-  #selected-property-table td:first-child {
+  #selected-property-table td:first-child,
+  .strategy-result td:first-child {
     min-width: 0;
   }
 
