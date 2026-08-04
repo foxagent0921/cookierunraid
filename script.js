@@ -1235,8 +1235,8 @@
     badge.textContent = `目前釘選：${pinnedLabels}`;
     const headline = document.createElement("p");
     headline.className = "strategy-verdict__headline";
-    headline.textContent = `單轉達成率 ${formatProbability(result.perRoll)}`
-      + `｜期望 ${formatRolls(result.expectedRolls)} 轉｜${formatPoints(result.expectedCost)}`;
+    headline.textContent = `單次達成率 ${formatProbability(result.perRoll)}`
+      + `｜期望 ${formatRolls(result.expectedRolls)} 次｜${formatPoints(result.expectedCost)}`;
     const policy = document.createElement("p");
     policy.className = "strategy-verdict__policy";
     const hasPurpleAndBluePinned = strategyPinnedIds.has("purple")
@@ -1244,7 +1244,7 @@
     const hasBlueAndWhitePinned = strategyPinnedIds.has("blue")
       && targets.whites.some(({ fieldId }) => strategyPinnedIds.has(fieldId));
     if (hasPurpleAndBluePinned) {
-      policy.textContent = "過渡狀態：尚未取得指定白字時可先保留紫＋藍；任一指定白字出現後，通常應改釘藍＋白，避免要求多個指定白字同轉出現。";
+      policy.textContent = "過渡狀態：尚未取得指定白字時可先保留紫＋藍；任一指定白字出現後，通常應改釘藍＋白，避免要求多個指定白字同一次出現。";
     } else if (hasBlueAndWhitePinned) {
       policy.textContent = "落袋狀態：已取得指定白字後保留藍＋白，再重洗較容易回來的紫字與其餘目標；白字難度不同時，通常優先釘較難抽者。";
     } else {
@@ -1278,7 +1278,7 @@
           whiteCondition,
           result.whiteRate,
         ),
-        createStrategyCalculationRow("整體", "其餘3格同一轉完成所有未釘目標", result.perRoll, true),
+        createStrategyCalculationRow("整體", "其餘3格同一次完成所有未釘目標", result.perRoll, true),
       ],
     );
 
@@ -1298,7 +1298,7 @@
 
     const note = document.createElement("p");
     note.className = "strategy-note";
-    note.textContent = "期望花費只計算目前兩格已釘後的終局階段：每轉 5,000 點 ÷ 單轉達成率；"
+    note.textContent = "期望花費只計算目前兩格已釘後的終局階段：每次 5,000 點 ÷ 單次達成率；"
       + "不包含取得目前釘選內容及中途換釘的前置成本，不同釘法不一定具有相同起跑點。每格都以指定能力的群組內機率計算，"
       + "多個未釘白字可用任意排列命中所選能力；未設定的白字格不限能力，"
       + "但仍會依群組不可重複規則納入機率。";
