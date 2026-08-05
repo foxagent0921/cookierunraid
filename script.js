@@ -834,7 +834,11 @@
     ["whiteB", "白字2"],
     ["whiteC", "白字3"],
   ]);
-  const formatRolls = (value) => Math.round(value).toLocaleString("en-US");
+  // 保留 1 位小數：期望次數本來就不是整數，取整會讓人拿它去乘 5,000 而對不上期望花費。
+  const formatRolls = (value) => value.toLocaleString("en-US", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
   const formatPoints = (value) => `${Math.round(value).toLocaleString("en-US")} 點`;
   const formatProbability = (rate) => {
     const percent = rate * 100;
