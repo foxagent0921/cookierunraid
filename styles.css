@@ -347,6 +347,21 @@ kbd {
   margin: 0.4rem 0;
 }
 
+.rules-card__body h3 {
+  margin: 1.6rem 0 0.6rem;
+  padding-top: 1rem;
+  color: var(--brand);
+  font-size: 1.02rem;
+  line-height: 1.4;
+  border-top: 1px dashed var(--line);
+}
+
+.rules-card__body h3:first-child {
+  margin-top: 0.4rem;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .rules-card__body .rule-highlight {
   margin-top: 0.75rem;
   padding: 0.7rem 0.85rem;
@@ -931,6 +946,15 @@ mark {
 .rules-card__body tbody tr.is-best td:first-child {
   font-weight: 950;
   box-shadow: inset 3px 0 0 var(--teal);
+}
+
+.rules-card__body tbody tr.is-total {
+  background: var(--surface-strong);
+}
+
+.rules-card__body tbody tr.is-total td {
+  color: var(--ink);
+  font-weight: 900;
 }
 
 .strategy-result td:first-child {
