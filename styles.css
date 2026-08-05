@@ -917,7 +917,7 @@ mark {
 
 .strategy-verdict__policy-caveat {
   margin: 0.4rem 0 0;
-  color: var(--muted);
+  color: #b42318;
   font-size: 0.8rem;
   line-height: 1.6;
 }
