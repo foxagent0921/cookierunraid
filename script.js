@@ -676,9 +676,13 @@
     const meta = document.createElement("span");
     meta.className = "autocomplete-option__meta";
     // 前兩個是參數速查表的原始值，最後一個是實際命中率，與選定後的欄位提示同一個函式。
+    // 口徑後綴不能省：白字是 3 格任一命中，紫字與藍字都只有 1 格。
+    const stoneHitScope = row.grade === GRADE_LOW
+      ? `（${WHITE_SLOT_COUNT} 白字格任一）`
+      : "（1 格）";
     meta.textContent = `群組 ${row.groupId}｜群組機率 ${formatRate(row.groupRate)}`
       + `｜群組內機率 ${formatRate(row.itemRate)}`
-      + `｜整顆石頭命中率 ${formatProbability(getStoneHitRate(row))}`;
+      + `｜整顆石頭命中率 ${formatProbability(getStoneHitRate(row))}${stoneHitScope}`;
 
     const badges = document.createElement("span");
     badges.className = "autocomplete-option__badges";
@@ -882,6 +886,29 @@
     return total > 0 ? row.itemRate / total : 0;
   }
 
+  // 白字格的群組權重跟資料一樣是靜態的，先算好；不預先算的話遞迴每一層都要重跑
+  // filter/reduce，單一白字要 9.6ms，下拉選單每次按鍵重繪 20 列就會看得出卡頓。
+  const LOW_GROUP_WEIGHTS = groups
+    .map((currentGroup) => ({
+      groupId: currentGroup.id,
+      bit: 1 << (currentGroup.id - 1),
+      weight: getGroupGradeWeight(currentGroup, GRADE_LOW),
+    }))
+    .filter((currentGroup) => currentGroup.weight > 0);
+  const LOW_GROUP_WEIGHT_TOTAL = LOW_GROUP_WEIGHTS
+    .reduce((sum, currentGroup) => sum + currentGroup.weight, 0);
+  const LOW_WEIGHT_BY_GROUP = new Map(LOW_GROUP_WEIGHTS
+    .map((currentGroup) => [currentGroup.groupId, currentGroup.weight]));
+  // 藍字格的落點分布。整顆石頭恰好 1 個中級能力，所以這同時就是「哪個群組會被藍字卡住」；
+  // 群組19 全是高級、沒有中級項目，不會出現在這份清單裡。
+  const BLUE_GROUP_LANDINGS = groups
+    .filter((currentGroup) => getRowsForGrade(currentGroup.id, GRADE_INTERMEDIATE).length > 0)
+    .map((currentGroup) => ({
+      bit: 1 << (currentGroup.id - 1),
+      lowWeight: LOW_WEIGHT_BY_GROUP.get(currentGroup.id) ?? 0,
+      rate: getConditionalGroupRate(currentGroup.id, GRADE_INTERMEDIATE, new Set()),
+    }));
+
   function getConditionalGroupRate(groupId, grade, excludedGroups) {
     const available = groups.filter((currentGroup) =>
       !excludedGroups.has(currentGroup.id)
@@ -928,14 +955,60 @@
     return result;
   }
 
-  // 一顆301階石頭出現該能力的機率。白字有三格且群組不可重複，要用聯合機率遞迴算
-  // 「任一格命中」，只算一格會低估約三倍；紫字與藍字各只有一格，就是兩層相乘。
-  // 欄位提示與候選清單共用這個函式，兩處數字才不會各說各話。
-  function getStoneHitRate(row) {
-    if (row.grade === GRADE_LOW) {
-      return getWhiteTargetSetRate([row], new Set(), WHITE_SLOT_COUNT);
+  // 單一白字目標的整石命中率。兩件事都要算進去：
+  // 1. 三個白字格的群組不可重複，所以走聯合遞迴而不是 1-(1-p)³；
+  // 2. 藍字先抽並卡住它的群組，白字只能從剩下的群組抽——所以要對藍字的落點取期望。
+  // 少了第 2 點，藍字常搶的群組會被高估（群組16 高估 18.3%），其餘群組則被低估約 6%。
+  // memo 的鍵是「已用群組 bitmask ＋ 剩餘格數」；18 個群組最多用掉 3 個只有 988 種狀態，
+  // 18 個藍字落點共用同一份 memo，單一白字的成本從 9.6ms 降到 0.11ms。
+  function getWhiteStoneHitRate(row) {
+    const targetBit = 1 << (row.groupId - 1);
+    const targetItemRate = getItemRateInGrade(row);
+    const memo = new Map();
+
+    function hitFrom(usedMask, usedWeight, slotsLeft) {
+      // 目標群組已被占用就永遠補不回來，不必再往下展開。
+      if (slotsLeft <= 0 || (usedMask & targetBit) !== 0) return 0;
+      const key = usedMask * (WHITE_SLOT_COUNT + 1) + slotsLeft;
+      const cached = memo.get(key);
+      if (cached !== undefined) return cached;
+
+      const availableWeight = LOW_GROUP_WEIGHT_TOTAL - usedWeight;
+      let result = 0;
+      if (availableWeight > 0) {
+        LOW_GROUP_WEIGHTS.forEach((currentGroup) => {
+          if ((usedMask & currentGroup.bit) !== 0) return;
+          const groupRate = currentGroup.weight / availableWeight;
+          result += currentGroup.groupId === row.groupId
+            ? groupRate * targetItemRate
+            : groupRate * hitFrom(
+              usedMask | currentGroup.bit,
+              usedWeight + currentGroup.weight,
+              slotsLeft - 1,
+            );
+        });
+      }
+      memo.set(key, result);
+      return result;
     }
-    return getConditionalGroupRate(row.groupId, row.grade, new Set()) * getItemRateInGrade(row);
+
+    return BLUE_GROUP_LANDINGS.reduce((sum, blueGroup) =>
+      sum + blueGroup.rate * hitFrom(blueGroup.bit, blueGroup.lowWeight, WHITE_SLOT_COUNT), 0);
+  }
+
+  // 一顆301階石頭出現該能力的機率。紫字與藍字各只有一格、且只有那一格吐得出該等級，
+  // 所以「整顆石頭」等於「那一格」，就是兩層相乘；白字要另外處理三格與藍字卡位。
+  // 欄位提示與候選清單共用這個函式，兩處數字才不會各說各話。
+  // 資料是靜態的，同一列的結果不會變，快取起來讓下拉選單重繪不必重算。
+  const stoneHitRateCache = new Map();
+  function getStoneHitRate(row) {
+    const cached = stoneHitRateCache.get(row);
+    if (cached !== undefined) return cached;
+    const rate = row.grade === GRADE_LOW
+      ? getWhiteStoneHitRate(row)
+      : getConditionalGroupRate(row.groupId, row.grade, new Set()) * getItemRateInGrade(row);
+    stoneHitRateCache.set(row, rate);
+    return rate;
   }
 
   function updateTargetFeedback(slot) {
@@ -1005,8 +1078,12 @@
     const slotLabel = matched.grade === GRADE_INTERMEDIATE ? "藍字格" : "白字格";
     const slotGroupRateText = `${slotLabel}抽中此群組 ${formatProbability(slotGroupRate)}`;
     const totalRate = getStoneHitRate(matched);
+    // 同樣叫「整顆石頭命中率」，白字是 3 格任一命中、藍字只有 1 格，一定要標出口徑，
+    // 否則兩個數字看起來同級、實際上分母不同。
     const totalRateText = `整顆石頭命中率 ${formatProbability(totalRate)}`
-      + (matched.grade === GRADE_LOW ? `（${WHITE_SLOT_COUNT} 個白字格合計）` : "");
+      + (matched.grade === GRADE_LOW
+        ? `（${WHITE_SLOT_COUNT} 個白字格任一命中，已扣除藍字卡位）`
+        : "（1 個藍字格，中級名額唯一）");
     feedback.textContent = matched.grade === GRADE_HIGH
       ? `群組19｜指定能力命中率 ${formatProbability(itemRate)}｜高級・301階以上必定出現`
       : `群組${matched.groupId}｜群組機率 ${formatRate(matched.groupRate)}`
