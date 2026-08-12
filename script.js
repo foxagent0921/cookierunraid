@@ -312,6 +312,8 @@
   const createTargetSlot = (id, grade) => ({
     ...baseSlot(id),
     grade,
+    // 目標範圍：false ＝只認輸入的那一個數值格，true ＝該群組同等級的任一 ★ 推薦能力。
+    anyRecommended: false,
     idPrefix: "target",
     getCandidates: getTargetCandidates,
     renderFeedback: (slot) => updateTargetFeedback(slot),
@@ -841,6 +843,28 @@
     ["whiteB", "白字2"],
     ["whiteC", "白字3"],
   ]);
+  // 說明文字一律用玩家看得到的顏色稱呼，不用內部的高/中/低級。
+  const STRATEGY_GRADE_COLORS = new Map([
+    [GRADE_HIGH, "紫字"],
+    [GRADE_INTERMEDIATE, "藍字"],
+    [GRADE_LOW, "白字"],
+  ]);
+  const getGradeColorLabel = (row) => STRATEGY_GRADE_COLORS.get(row.grade) ?? "";
+  // 指定單一格就寫能力名稱；群組任一推薦寫成範圍，並標出可接受幾格，
+  // 免得表格裡只留一個能力名稱、看不出實際上放寬了多少。群組編號由呼叫端各自附上。
+  function describeStrategyTarget(row, anyRecommended) {
+    if (!anyRecommended) return row.item;
+    const count = getRecommendedRowsInGrade(row.groupId, row.grade).length;
+    return `任一推薦${getGradeColorLabel(row)}（${count} 格）`;
+  }
+
+  // 條件機率表用的完整寫法：指定單一格是「能力名稱（群組N）」，
+  // 任一推薦是「群組N 任一推薦白字（k 格）」，群組編號都在但不會出現兩層括號。
+  function describeStrategyTargetWithGroup(row, anyRecommended) {
+    return anyRecommended
+      ? `群組${row.groupId} ${describeStrategyTarget(row, true)}`
+      : `${row.item}（群組${row.groupId}）`;
+  }
   // 保留 1 位小數：期望次數本來就不是整數，取整會讓人拿它去乘 5,000 而對不上期望花費。
   const formatRolls = (value) => value.toLocaleString("en-US", {
     minimumFractionDigits: 1,
@@ -886,6 +910,30 @@
     return total > 0 ? row.itemRate / total : 0;
   }
 
+  // 「群組內任一推薦」模式：可接受的不是單一數值格，而是該群組同等級的全部 ★ 推薦項目。
+  // 群組愈大差距愈誇張——群組16 有 24 個白字項目，指定 1 格只有 4.17%，收 9 個推薦格就是 37.50%。
+  function getRecommendedRowsInGrade(groupId, grade) {
+    return getRowsForGrade(groupId, grade).filter((row) => row.recommended);
+  }
+
+  function getRecommendedItemRateTotal(groupId, grade) {
+    return getRecommendedRowsInGrade(groupId, grade)
+      .reduce((sum, row) => sum + row.itemRate, 0);
+  }
+
+  function getRecommendedRateInGrade(groupId, grade) {
+    const total = getGradeItemRateTotal(groupId, grade);
+    return total > 0 ? getRecommendedItemRateTotal(groupId, grade) / total : 0;
+  }
+
+  // 放寬目標範圍只改「群組內可接受項目的機率」這一個因子；群組層的權重、群組不可重複
+  // 規則都完全不變，所以兩種範圍可以直接比較，差幾倍就是差幾倍。
+  function getTargetItemRate(row, anyRecommended) {
+    return anyRecommended
+      ? getRecommendedRateInGrade(row.groupId, row.grade)
+      : getItemRateInGrade(row);
+  }
+
   // 白字格的群組權重跟資料一樣是靜態的，先算好；不預先算的話遞迴每一層都要重跑
   // filter/reduce，單一白字要 9.6ms，下拉選單每次按鍵重繪 20 列就會看得出卡頓。
   const LOW_GROUP_WEIGHTS = groups
@@ -921,9 +969,11 @@
 
   // 白字欄位沒有位置差異：指定能力可出現在任一未釘白字格。
   // 只設定兩個白字時，剩下的白字格視為不限能力，但它抽到的群組仍會排除後續群組。
-  function getWhiteTargetSetRate(targetRows, usedGroups, slotsLeft) {
-    if (targetRows.length === 0) return 1;
-    if (slotsLeft < targetRows.length || slotsLeft <= 0) return 0;
+  // targets 的每一筆是 { row, anyRecommended }：row 決定要哪個群組，anyRecommended 決定
+  // 抽中該群組後有幾格算命中（指定 1 格，或該群組同等級的全部 ★ 推薦格）。
+  function getWhiteTargetSetRate(targets, usedGroups, slotsLeft) {
+    if (targets.length === 0) return 1;
+    if (slotsLeft < targets.length || slotsLeft <= 0) return 0;
 
     const availableGroups = groups.filter((currentGroup) =>
       !usedGroups.has(currentGroup.id)
@@ -935,22 +985,24 @@
     let result = 0;
     availableGroups.forEach((currentGroup) => {
       const groupRate = getGroupGradeWeight(currentGroup, GRADE_LOW) / totalGroupRate;
-      const targetIndex = targetRows.findIndex((row) => row.groupId === currentGroup.id);
+      const targetIndex = targets.findIndex((target) => target.row.groupId === currentGroup.id);
       const nextUsed = new Set(usedGroups);
       nextUsed.add(currentGroup.id);
 
       if (targetIndex >= 0) {
-        // 抽到目標群組但沒有命中指定內容時，該群組已被占用，之後不可能補回目標。
-        const target = targetRows[targetIndex];
-        const nextTargets = targetRows.filter((_, index) => index !== targetIndex);
+        // 抽到目標群組但沒有命中可接受內容時，該群組已被占用，之後不可能補回目標。
+        // 這個死局正是大群組的隱藏成本：群組16 有 24 格，指定單一格時每 100 次抽中群組
+        // 就有 96 次是白白鎖死一個格子，放寬成 9 個推薦格後只剩 62 次。
+        const target = targets[targetIndex];
+        const nextTargets = targets.filter((_, index) => index !== targetIndex);
         result += groupRate
-          * getItemRateInGrade(target)
+          * getTargetItemRate(target.row, target.anyRecommended)
           * getWhiteTargetSetRate(nextTargets, nextUsed, slotsLeft - 1);
         return;
       }
 
       // 非目標群組中的任何低級能力都可接受，項目機率合計為 100%。
-      result += groupRate * getWhiteTargetSetRate(targetRows, nextUsed, slotsLeft - 1);
+      result += groupRate * getWhiteTargetSetRate(targets, nextUsed, slotsLeft - 1);
     });
     return result;
   }
@@ -961,9 +1013,10 @@
   // 少了第 2 點，藍字常搶的群組會被高估（群組16 高估 18.3%），其餘群組則被低估約 6%。
   // memo 的鍵是「已用群組 bitmask ＋ 剩餘格數」；18 個群組最多用掉 3 個只有 988 種狀態，
   // 18 個藍字落點共用同一份 memo，單一白字的成本從 9.6ms 降到 0.11ms。
-  function getWhiteStoneHitRate(row) {
-    const targetBit = 1 << (row.groupId - 1);
-    const targetItemRate = getItemRateInGrade(row);
+  // targetItemRate 是「抽中該群組後有多少比例算命中」，由呼叫端決定要用指定單一格
+  // 還是群組內任一推薦，這個遞迴本身不需要知道差別。
+  function getWhiteStoneHitRate(groupId, targetItemRate) {
+    const targetBit = 1 << (groupId - 1);
     const memo = new Map();
 
     function hitFrom(usedMask, usedWeight, slotsLeft) {
@@ -979,7 +1032,7 @@
         LOW_GROUP_WEIGHTS.forEach((currentGroup) => {
           if ((usedMask & currentGroup.bit) !== 0) return;
           const groupRate = currentGroup.weight / availableWeight;
-          result += currentGroup.groupId === row.groupId
+          result += currentGroup.groupId === groupId
             ? groupRate * targetItemRate
             : groupRate * hitFrom(
               usedMask | currentGroup.bit,
@@ -1001,13 +1054,16 @@
   // 欄位提示與候選清單共用這個函式，兩處數字才不會各說各話。
   // 資料是靜態的，同一列的結果不會變，快取起來讓下拉選單重繪不必重算。
   const stoneHitRateCache = new Map();
-  function getStoneHitRate(row) {
-    const cached = stoneHitRateCache.get(row);
+  function getStoneHitRate(row, anyRecommended = false) {
+    // 任一推薦的結果只跟「群組＋等級」有關，同群組的能力共用一份；字串鍵不會跟列物件撞。
+    const cacheKey = anyRecommended ? `any-${row.groupId}-${row.grade}` : row;
+    const cached = stoneHitRateCache.get(cacheKey);
     if (cached !== undefined) return cached;
+    const itemRate = getTargetItemRate(row, anyRecommended);
     const rate = row.grade === GRADE_LOW
-      ? getWhiteStoneHitRate(row)
-      : getConditionalGroupRate(row.groupId, row.grade, new Set()) * getItemRateInGrade(row);
-    stoneHitRateCache.set(row, rate);
+      ? getWhiteStoneHitRate(row.groupId, itemRate)
+      : getConditionalGroupRate(row.groupId, row.grade, new Set()) * itemRate;
+    stoneHitRateCache.set(cacheKey, rate);
     return rate;
   }
 
@@ -1062,22 +1118,32 @@
 
     const gradeLabel = getGradeLabel(matched);
     const gradeTotal = getGradeItemRateTotal(matched.groupId, matched.grade);
-    const itemRate = getItemRateInGrade(matched);
+    // 這一行顯示的是「這個目標本身有多難抽」，與釘選狀態無關（釘選只在計算表出現），
+    // 所以照目標範圍算；已釘選時另外附註它在本輪不生效，避免被當成本輪的有效機率。
+    const isBroadScope = slot.anyRecommended;
+    const itemRate = getTargetItemRate(matched, isBroadScope);
+    const recommendedCount = getRecommendedRowsInGrade(matched.groupId, matched.grade).length;
     // 群組11、12這類單一能力群組的群組內命中率必為100%，直接標成「必中」會被誤讀成穩拿，
     // 改寫成條件敘述，真正的機率交給整顆石頭命中率呈現。
     // 參數速查表列的是原始項目機率（分母是整個群組），這裡的分母只有同等級項目，
     // 同一個能力會出現兩個數字；把算式攤開讓兩邊對得起來。
-    const itemRateText = itemRate >= 1
-      ? "群組內唯一同級能力・抽中群組即命中"
-      : `群組內指定能力命中率 ${formatProbability(itemRate)}`
-        + `（原始項目機率 ${formatRate(matched.itemRate)}`
-        + ` ÷ 群組內${gradeLabel}項目合計 ${formatRate(gradeTotal)}）`;
+    const itemRateText = isBroadScope
+      ? `群組內任一推薦命中率 ${formatProbability(itemRate)}`
+        + `（${recommendedCount} 個 ★ 推薦${getGradeColorLabel(matched)}合計`
+        + ` ${formatRate(getRecommendedItemRateTotal(matched.groupId, matched.grade))}`
+        + ` ÷ 群組內${gradeLabel}項目合計 ${formatRate(gradeTotal)}`
+        + `；指定單一格時只有 ${formatProbability(getItemRateInGrade(matched))}）`
+      : itemRate >= 1
+        ? "群組內唯一同級能力・抽中群組即命中"
+        : `群組內指定能力命中率 ${formatProbability(itemRate)}`
+          + `（原始項目機率 ${formatRate(matched.itemRate)}`
+          + ` ÷ 群組內${gradeLabel}項目合計 ${formatRate(gradeTotal)}）`;
     // 這一格抽中該群組的機率。原始群組機率要先乘上「該群組吐出這個等級的比例」再正規化，
     // 所以跟參數速查表的群組機率不會相等；把它顯示出來，整行的乘法才對得起來。
     const slotGroupRate = getConditionalGroupRate(matched.groupId, matched.grade, new Set());
     const slotLabel = matched.grade === GRADE_INTERMEDIATE ? "藍字格" : "白字格";
     const slotGroupRateText = `${slotLabel}抽中此群組 ${formatProbability(slotGroupRate)}`;
-    const totalRate = getStoneHitRate(matched);
+    const totalRate = getStoneHitRate(matched, isBroadScope);
     // 同樣叫「整顆石頭命中率」，白字是 3 格任一命中、藍字只有 1 格，一定要標出口徑，
     // 否則兩個數字看起來同級、實際上分母不同。
     const totalRateText = `整顆石頭命中率 ${formatProbability(totalRate)}`
@@ -1090,6 +1156,12 @@
         + `｜${slotGroupRateText}`
         + `｜${itemRateText}`
         + `｜${totalRateText}`;
+    // 釘選格與重骰格的根本差別：釘住的是手上既定的單一能力，本輪不必再抽，
+    // 放寬範圍完全沒有作用；上面那串數字要當成「解除釘選改成重骰」的參考值來讀。
+    if (slot.anyRecommended && strategyPinnedIds.has(slot.id)) {
+      feedback.textContent += "｜此格已釘選，本輪計算恆為100%，「任一推薦」不生效；"
+        + "以上機率是改成重骰這一格時的參考值";
+    }
     // 群組3的截圖資料不完整（項目合計僅62.12%），重新正規化後的命中率可能偏高。
     if (matched.groupId === INCOMPLETE_GROUP_ID) {
       feedback.textContent += `｜注意：群組${INCOMPLETE_GROUP_ID}截圖資料不完整，命中率以可見項目計算，可能偏高`;
@@ -1097,13 +1169,25 @@
     feedback.classList.add("is-valid");
   }
 
+  // 選了「群組任一推薦」卻選到沒有推薦項目的群組時，命中率會是 0；擋下來並指出是哪一格，
+  // 比默默算出 0% 或悄悄退回指定模式都好。
+  function getStrategyScopeIssue() {
+    return strategyTargetStates.find((slot) => {
+      if (!slot.anyRecommended) return false;
+      const row = resolveProperty(slot.value);
+      return Boolean(row) && getRecommendedRateInGrade(row.groupId, row.grade) <= 0;
+    }) ?? null;
+  }
+
   function getStrategyTargets() {
     const purple = resolveProperty(strategyTargetStates[0].value);
     const blue = resolveProperty(strategyTargetStates[1].value);
+    const blueAnyRecommended = strategyTargetStates[1].anyRecommended;
     const whiteSlots = strategyTargetStates.slice(2).map((slot) => ({
       fieldId: slot.id,
       hasValue: slot.value.trim() !== "",
       row: resolveProperty(slot.value),
+      anyRecommended: slot.anyRecommended,
     }));
     const whites = whiteSlots.filter((entry) => entry.row);
 
@@ -1112,6 +1196,7 @@
     // 有輸入但未匹配完整能力時不能忽略，避免以錯誤的四格資料進行試算。
     if (whiteSlots.some((entry) => entry.hasValue && !entry.row)) return null;
     if (whites.length < 1 || whites.some((entry) => entry.row.grade !== GRADE_LOW)) return null;
+    if (getStrategyScopeIssue()) return null;
 
     const configured = [
       { fieldId: "purple", row: purple },
@@ -1123,7 +1208,7 @@
     if ([...strategyPinnedIds].some((fieldId) =>
       !configured.some((entry) => entry.fieldId === fieldId))) return null;
 
-    return { purple, blue, whites };
+    return { purple, blue, blueAnyRecommended, whites };
   }
 
   function getConfiguredStrategyCount() {
@@ -1152,9 +1237,16 @@
     title.className = "empty-state__title";
     const detail = document.createElement("p");
 
+    const scopeIssue = getStrategyScopeIssue();
+
     if (hasGroupClash) {
       title.textContent = "藍字與白字出現重複群組";
       detail.textContent = "同一顆召喚石的群組不可重複，請更換衝突的群組。";
+    } else if (scopeIssue) {
+      const row = resolveProperty(scopeIssue.value);
+      title.textContent = `群組${row.groupId}沒有 ★ 推薦${getGradeColorLabel(row)}，無法使用「群組任一推薦」`;
+      detail.textContent = `請把「${STRATEGY_FIELD_LABELS.get(scopeIssue.id)}」改回「指定單一格」，`
+        + "或換成有 ★ 推薦標記的群組。";
     } else if (strategyPinnedIds.size !== 2) {
       title.textContent = `請設定 2 個釘選欄位（目前 ${strategyPinnedIds.size} 個）`;
       detail.textContent = "先按欄位右側的「設為釘選」，再計算其餘 3 格同時達成的機率。";
@@ -1169,7 +1261,7 @@
   }
 
   function calculatePinnedStrategy(configuration) {
-    const { purple, blue, whites } = configuration;
+    const { purple, blue, blueAnyRecommended, whites } = configuration;
     const usedGroups = new Set();
 
     if (strategyPinnedIds.has("blue")) usedGroups.add(blue.groupId);
@@ -1179,11 +1271,12 @@
 
     // 已釘選的格子計算上視為100%，另外算出「同一格若未釘選」的機率，供換釘取捨參考。
     // 藍字的參考值要把自己的群組移出排除清單，否則會被自己的釘選狀態影響。
+    // 釘選格的目標範圍不進入計算：釘住的是手上那一個既定能力，放寬成「任一推薦」也還是它。
     const purpleUnpinnedRate = getItemRateInGrade(purple);
     const blueUnpinnedGroups = new Set(usedGroups);
     blueUnpinnedGroups.delete(blue.groupId);
     const blueUnpinnedRate = getConditionalGroupRate(blue.groupId, GRADE_INTERMEDIATE, blueUnpinnedGroups)
-      * getItemRateInGrade(blue);
+      * getTargetItemRate(blue, blueAnyRecommended);
 
     const purpleRate = strategyPinnedIds.has("purple") ? 1 : purpleUnpinnedRate;
 
@@ -1197,11 +1290,7 @@
     const rollingWhites = whites.filter(({ fieldId }) => !strategyPinnedIds.has(fieldId));
     const pinnedWhiteCount = whites.filter(({ fieldId }) => strategyPinnedIds.has(fieldId)).length;
     const rollingWhiteSlotCount = WHITE_SLOT_COUNT - pinnedWhiteCount;
-    const whiteRate = getWhiteTargetSetRate(
-      rollingWhites.map(({ row }) => row),
-      usedGroups,
-      rollingWhiteSlotCount,
-    );
+    const whiteRate = getWhiteTargetSetRate(rollingWhites, usedGroups, rollingWhiteSlotCount);
     const perRoll = purpleRate * blueRate * whiteRate;
 
     return {
@@ -1222,6 +1311,8 @@
     slot.value = "";
     slot.isOpen = false;
     slot.activeIndex = -1;
+    // 目標範圍是綁在群組上的，清掉能力就沒有群組可依附，一併回到「指定單一格」。
+    slot.anyRecommended = false;
     // 沒有內容就沒有東西可釘，順手解除釘選；否則會留下「已釘選但欄位是空的」，
     // 空狀態提示會變成「至少需要 3 格目標」，看不出真正的原因。
     strategyPinnedIds.delete(slot.id);
@@ -1246,11 +1337,45 @@
     return strategyPinnedIds.size >= 2 || !resolveProperty(slot.value);
   }
 
+  // 目標範圍能不能切成「群組任一推薦」，以及不能的話原因是什麼。
+  // 釘選格特別列出來：那一格的內容已經在手上、計算上恆為 100%，放寬範圍不會有任何效果，
+  // 與其讓玩家按了卻看不出差別，不如停用並講明白。
+  function getScopeToggleState(slot) {
+    const row = resolveProperty(slot.value);
+    if (!row) return { available: false, reason: "先選定能力，才能切換目標範圍。" };
+    if (row.grade === GRADE_HIGH) {
+      return {
+        available: false,
+        reason: `群組${HIGH_GRADE_GROUP_ID}的 9 個紫字沒有推薦標記，只能指定單一能力。`,
+      };
+    }
+    if (strategyPinnedIds.has(slot.id)) {
+      return {
+        available: false,
+        reason: "已釘選：這一格是手上既定的單一能力、計算上恆為 100%，放寬範圍不影響結果。",
+      };
+    }
+    const count = getRecommendedRowsInGrade(row.groupId, row.grade).length;
+    if (count === 0) {
+      return {
+        available: false,
+        reason: `群組${row.groupId}沒有 ★ 推薦${getGradeColorLabel(row)}，無法使用群組任一推薦。`,
+      };
+    }
+    return { available: true, count };
+  }
+
+  // 已經開著的時候一律允許關掉，否則釘選後會被鎖在「任一推薦」而無法改回來。
+  function isScopeToggleDisabled(slot) {
+    return !slot.anyRecommended && !getScopeToggleState(slot).available;
+  }
+
   // 打字不會重建欄位（會弄丟游標），所以按鈕的可用狀態要就地更新，
   // 否則輸入內容後「清除」與「設為釘選」會一直停在停用狀態。
   function updateStrategySlotActions() {
     strategyTargetStates.forEach((slot) => {
       if (slot.pinButton) slot.pinButton.disabled = isPinToggleDisabled(slot);
+      if (slot.scopeButton) slot.scopeButton.disabled = isScopeToggleDisabled(slot);
       if (slot.clearButton) slot.clearButton.disabled = slot.value.trim() === "";
     });
   }
@@ -1266,6 +1391,31 @@
     button.addEventListener("click", () => {
       if (isPinned) strategyPinnedIds.delete(slot.id);
       else if (strategyPinnedIds.size < 2) strategyPinnedIds.add(slot.id);
+      renderStrategyTargets();
+      renderStrategy();
+    });
+    return button;
+  }
+
+  // 目標範圍切換。按鈕文字顯示的是「目前是哪一種」，與釘選鈕同一套邏輯。
+  function createStrategyScopeButton(slot) {
+    const isBroad = slot.anyRecommended;
+    const scope = getScopeToggleState(slot);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `strategy-scope-toggle${isBroad ? " is-broad" : ""}`;
+    button.textContent = isBroad ? "任一推薦" : "指定單一格";
+    button.setAttribute("aria-pressed", String(isBroad));
+    button.setAttribute(
+      "aria-label",
+      `${STRATEGY_FIELD_LABELS.get(slot.id)}目標範圍：${isBroad ? "群組任一推薦" : "指定單一格"}`,
+    );
+    button.disabled = isScopeToggleDisabled(slot);
+    button.title = scope.available
+      ? `切換成「群組任一推薦」後，該群組的 ${scope.count} 個 ★ 推薦能力都算命中。`
+      : scope.reason;
+    button.addEventListener("click", () => {
+      slot.anyRecommended = !slot.anyRecommended;
       renderStrategyTargets();
       renderStrategy();
     });
@@ -1321,6 +1471,43 @@
     stateCell.textContent = strategyPinnedIds.has(fieldId) ? "已釘選・視為100%" : "本輪重骰";
     row.append(fieldCell, targetCell, stateCell);
     return row;
+  }
+
+  // 目標範圍提醒。重點是釘選格與重骰格的不對稱：釘住的是手上既定的單一能力（恆為100%），
+  // 放寬成「任一推薦」只會讓還要重骰的那一格變好抽。因此同一組目標換個釘法，
+  // 兩格的難易可能整個對調——這是最容易被忽略的地方，也是本區塊存在的理由。
+  function createStrategyScopeNotice(targets) {
+    const scoped = [
+      { fieldId: "blue", row: targets.blue, anyRecommended: targets.blueAnyRecommended },
+      ...targets.whites,
+    ].filter((entry) => entry.anyRecommended);
+    if (scoped.length === 0) return null;
+
+    const rolling = scoped.filter(({ fieldId }) => !strategyPinnedIds.has(fieldId));
+    const pinned = scoped.filter(({ fieldId }) => strategyPinnedIds.has(fieldId));
+    const parts = [];
+
+    if (rolling.length > 0) {
+      const detail = rolling.map(({ fieldId, row }) => {
+        const narrow = getItemRateInGrade(row);
+        const broad = getRecommendedRateInGrade(row.groupId, row.grade);
+        return `${STRATEGY_FIELD_LABELS.get(fieldId)}＝${describeStrategyTargetWithGroup(row, true)}，`
+          + `群組內命中率 ${formatProbability(narrow)} → ${formatProbability(broad)}`
+          + `（放大 ${(broad / narrow).toFixed(1)} 倍）`;
+      }).join("；");
+      parts.push(`目標範圍已放寬：${detail}。`);
+    }
+    if (pinned.length > 0) {
+      const labels = pinned.map(({ fieldId }) => STRATEGY_FIELD_LABELS.get(fieldId)).join("、");
+      parts.push(`${labels}已釘選，是手上既定的單一能力、計算上恆為100%，其「任一推薦」設定本輪不生效。`);
+    }
+    parts.push("放寬只對本輪重骰的格子生效，所以同一組目標換一種釘法時，"
+      + "兩格的難易可能整個對調；兩種釘法都各算一次再決定釘哪一格。");
+
+    const notice = document.createElement("p");
+    notice.className = "strategy-verdict__scope";
+    notice.textContent = parts.join("");
+    return notice;
   }
 
   function renderStrategyTargets() {
@@ -1400,8 +1587,9 @@
       const actions = document.createElement("div");
       actions.className = "property-slot__actions";
       slot.pinButton = createStrategyPinButton(slot);
+      slot.scopeButton = createStrategyScopeButton(slot);
       slot.clearButton = createStrategyClearButton(slot);
-      actions.append(slot.pinButton, slot.clearButton);
+      actions.append(slot.pinButton, slot.scopeButton, slot.clearButton);
 
       container.append(number, field, actions);
       fragment.append(container);
@@ -1452,9 +1640,14 @@
     policyCaveat.textContent = "機率以官方公開資訊推算，計算結果僅供參考，很多隱藏參數沒考慮進去 (例如只有藍弱點，就不會抽到 紅/黃屬性)。";
     verdict.append(badge, headline, policy, policyCaveat);
 
+    const scopeNotice = createStrategyScopeNotice(targets);
+    if (scopeNotice) verdict.append(scopeNotice);
+
     const unrestrictedWhiteCount = result.rollingWhiteSlotCount - result.rollingWhites.length;
     const whiteCondition = result.rollingWhites.length > 0
-      ? result.rollingWhites.map(({ row }) => `${row.item}（群組${row.groupId}）`).join("、")
+      ? result.rollingWhites
+        .map(({ row, anyRecommended }) => describeStrategyTargetWithGroup(row, anyRecommended))
+        .join("、")
         + (unrestrictedWhiteCount > 0 ? `；另 ${unrestrictedWhiteCount} 格不限` : "")
       : unrestrictedWhiteCount > 0
         ? `已設定白字皆固定；另 ${unrestrictedWhiteCount} 格不限`
@@ -1474,7 +1667,7 @@
           "藍字",
           strategyPinnedIds.has("blue")
             ? `已釘選・未釘時 ${formatProbability(result.blueUnpinnedRate)}`
-            : `${targets.blue.item}（群組${targets.blue.groupId}）`,
+            : describeStrategyTargetWithGroup(targets.blue, targets.blueAnyRecommended),
           result.blueRate,
         ),
         createStrategyCalculationRow(
@@ -1491,10 +1684,14 @@
       ["欄位", "目標", "狀態"],
       [
         createStrategyConfigurationRow("紫字", targets.purple.item, "purple"),
-        createStrategyConfigurationRow("藍字", `${targets.blue.item}・群組 ${targets.blue.groupId}`, "blue"),
-        ...targets.whites.map(({ fieldId, row }) => createStrategyConfigurationRow(
+        createStrategyConfigurationRow(
+          "藍字",
+          `${describeStrategyTarget(targets.blue, targets.blueAnyRecommended)}・群組 ${targets.blue.groupId}`,
+          "blue",
+        ),
+        ...targets.whites.map(({ fieldId, row, anyRecommended }) => createStrategyConfigurationRow(
           STRATEGY_FIELD_LABELS.get(fieldId),
-          `${row.item}・群組 ${row.groupId}`,
+          `${describeStrategyTarget(row, anyRecommended)}・群組 ${row.groupId}`,
           fieldId,
         )),
       ],
@@ -1503,7 +1700,9 @@
     const note = document.createElement("p");
     note.className = "strategy-note";
     note.textContent = "期望花費只計算目前兩格已釘後的終局階段：每次 5,000 點 ÷ 單次達成率；"
-      + "不包含取得目前釘選內容及中途換釘的前置成本，不同釘法不一定具有相同起跑點。每格都以指定能力的群組內機率計算，"
+      + "不包含取得目前釘選內容及中途換釘的前置成本，不同釘法不一定具有相同起跑點。"
+      + "每格都以該欄位目標範圍的群組內機率計算（指定單一格＝只認那一個數值格；"
+      + "群組任一推薦＝該群組同等級的 ★ 推薦能力都算命中），"
       + "多個未釘白字可用任意排列命中所選能力；未設定的白字格不限能力，"
       + "但仍會依群組不可重複規則納入機率。";
 

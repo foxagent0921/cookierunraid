@@ -713,6 +713,7 @@ mark {
 }
 
 .strategy-pin-toggle,
+.strategy-scope-toggle,
 .strategy-clear-button {
   min-width: 5.4rem;
   min-height: 2.5rem;
@@ -723,6 +724,29 @@ mark {
   border-radius: var(--radius-sm);
   font-weight: 900;
   cursor: pointer;
+}
+
+/* 目標範圍比釘選次要一階：字級小一點，展開狀態用琥珀色跟釘選的藍綠色分開。 */
+.strategy-scope-toggle {
+  min-height: 2.2rem;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.strategy-scope-toggle:hover:not(:disabled) {
+  border-color: #c8922a;
+}
+
+.strategy-scope-toggle.is-broad {
+  color: #6b4b12;
+  background: #fdf3dc;
+  border-color: #c8922a;
+}
+
+.strategy-scope-toggle:disabled {
+  color: #a99c83;
+  background: #f2eee4;
+  cursor: not-allowed;
 }
 
 /* 清除是破壞性操作，比釘選低一階：字級小一點、不搶視覺重量。 */
@@ -935,6 +959,18 @@ mark {
   color: #b42318;
   font-size: 0.8rem;
   line-height: 1.6;
+}
+
+/* 目標範圍提醒只在有欄位改成「任一推薦」時出現，是換釘決策的關鍵前提，要看得見。 */
+.strategy-verdict__scope {
+  margin: 0.6rem 0 0;
+  padding: 0.6rem 0.75rem;
+  color: #6b4b12;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  background: #fdf3dc;
+  border: 1px solid #e2c273;
+  border-radius: var(--radius-sm);
 }
 
 .strategy-result tbody tr.is-best,
