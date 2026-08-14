@@ -8,8 +8,9 @@
   const HIGH_GRADE_GROUP_ID = 19;
   // 301階石頭的欄位組成：1 紫、1 藍、3 白。白字有三格，指定白字出現在任一格都算命中。
   const WHITE_SLOT_COUNT = 3;
-  // 群組3的截圖項目機率合計僅62.12%，未完整揭露；相關計算需附上提醒。
-  const INCOMPLETE_GROUP_ID = 3;
+  // 群組3的截圖只揭露到 62.12%，缺的四項依同型結構推論補齊後合計 100.00%；
+  // 數字不是截圖直接讀到的，相關計算需附上提醒。
+  const INFERRED_GROUP_ID = 3;
   const GRADE_LOW = "low";
   const GRADE_INTERMEDIATE = "intermediate";
   const GRADE_HIGH = "high";
@@ -99,13 +100,21 @@
       24.24,
       3.03,
     )),
+    // 「餅乾所受傷害量減少」的 11-20% 之後四項截圖未拍到，依群組10 的同型結構推論補齊；
+    // 補上後群組合計剛好 100.00%，但這四筆屬推論值，選到本群組時會附上提醒。
     group(3, [
-      entry("餅乾體力增加1-10%", 12.12),
-      entry("餅乾體力增加11-20%", 12.12),
-      entry("餅乾體力增加21-30%", 12.12),
-      entry("餅乾體力增加31-40%", 12.12),
-      intermediateEntry("餅乾體力增加41-50%", 1.52),
-      entry("餅乾所受傷害量減少1-10%", 12.12),
+      ...ranged(
+        "餅乾體力增加",
+        ["1-10%", "11-20%", "21-30%", "31-40%", "41-50%"],
+        [12.12, 12.12, 12.12, 12.12, 1.52],
+        [4],
+      ),
+      ...ranged(
+        "餅乾所受傷害量減少",
+        ["1-10%", "11-20%", "21-30%", "31-40%", "41-50%"],
+        [12.12, 12.12, 12.12, 12.12, 1.52],
+        [4],
+      ),
     ]),
     group(4, fiveTier(
       "怪物體力增加",
@@ -896,8 +905,8 @@
   // 群組11/12/17/18 全是中級，抽中就必定是中級，權重＝完整群組機率；
   // 群組5 只有 2.60% 的項目是中級，權重要按比例縮小。
   // 若只用群組機率正規化，會讓罕見但保證出中級的群組被嚴重低估（差到 25 倍）。
-  // 分母用該群組自己的項目合計而非 100：群組3 截圖只揭露 62.12%，
-  // 與 getItemRateInGrade 一樣以可見項目重新正規化，兩處假設才會一致。
+  // 分母用該群組自己的項目合計而非 100：19 個群組補齊後合計皆為 100.00%，
+  // 兩者等價，但保留除法就不會在資料再次變動時默默算錯。
   function getGroupGradeWeight(group, grade) {
     const groupTotal = getGroupItemRateTotal(group.id);
     return groupTotal > 0
@@ -1162,9 +1171,9 @@
       feedback.textContent += "｜此格已釘選，本輪計算恆為100%，「任一推薦」不生效；"
         + "以上機率是改成重骰這一格時的參考值";
     }
-    // 群組3的截圖資料不完整（項目合計僅62.12%），重新正規化後的命中率可能偏高。
-    if (matched.groupId === INCOMPLETE_GROUP_ID) {
-      feedback.textContent += `｜注意：群組${INCOMPLETE_GROUP_ID}截圖資料不完整，命中率以可見項目計算，可能偏高`;
+    // 群組3有四項是推論補齊的，合計雖已達100%，但來源不是截圖，仍要讓使用者知道。
+    if (matched.groupId === INFERRED_GROUP_ID) {
+      feedback.textContent += `｜注意：群組${INFERRED_GROUP_ID}有 4 項為推論補齊，非截圖實測值`;
     }
     feedback.classList.add("is-valid");
   }
@@ -1773,7 +1782,7 @@
 
   if (
     groups.length !== 19
-    || rows.length !== 187
+    || rows.length !== 191
     || recommendedCount !== expectedRecommendedCount
   ) {
     console.warn(
