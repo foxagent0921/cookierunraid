@@ -77,7 +77,7 @@
 
           <label class="filter-toggle" for="recommended-filter">
             <input id="recommended-filter" name="recommended" type="checkbox">
-            <span>只看 ★ 推薦能力（36 個）</span>
+            <span>只看 ★ 推薦能力（31 個）</span>
           </label>
         </form>
 
@@ -91,8 +91,8 @@
           <p>附加能力稀有度可由遊戲內字體顏色辨識：高級（紫色）、中級（藍色）、低級（白色）。31階以上<strong>恰好出現 1 個</strong>中級能力；301階以上<strong>恰好出現 1 個</strong>高級能力。<strong>301階石頭因此固定是 1 紫 ＋ 1 藍 ＋ 3 白共 5 格。</strong></p>
           <p class="rule-highlight"><strong>群組 19 全部是高級能力</strong>，每顆召喚石只能出現 1 個高級能力。</p>
           <p class="rule-highlight"><strong>群組 1～18 中，原始資料以 * 標示的項目是中級能力</strong>。每顆召喚石跨群組合計只能出現 1 個中級能力；選定後，其他群組的中級項目也會一併排除。</p>
-          <p class="rule-highlight"><strong>藍字格先抽，而且會整組卡住。</strong>中級名額只有 1 個，藍字格抽中哪個群組，該群組的<strong>所有白字項目也一併從 3 個白字格消失</strong>。所以白字的命中率不能假設面對完整的群組池——<strong>藍字愈常搶的群組，它的白字愈難拿</strong>：群組16 被藍字格搶走的機率高達 20.72%，它的白字命中率因此比「不考慮藍字」的算法低 18%；反過來，很少被藍字搶的群組（例如群組13）則會被低估約 6%。</p>
-          <p class="rule-highlight rule-highlight--recommended"><strong>原始資料的推薦標記：<code>**</code> ＝ 9 個 ★ 推薦藍字（中級），<code>#</code> ＝ 27 個 ★ 推薦白字（低級）</strong>，也就是這份整理裡真正想抽到的目標，合計 36 個。藍字名額只有 1 個，那 9 個彼此互斥；白字有 3 格，可從那 27 個裡湊。</p>
+          <p class="rule-highlight"><strong>藍字格先抽，而且會整組卡住。</strong>中級名額只有 1 個，藍字格抽中哪個群組，該群組的<strong>所有白字項目也一併從 3 個白字格消失</strong>。所以白字的命中率不能假設面對完整的群組池——<strong>藍字愈常搶的群組，它的白字愈難拿</strong>：群組16 被藍字格搶走的機率高達 20.45%，它的白字命中率因此比「不考慮藍字」的算法低 18%；反過來，很少被藍字搶的群組（例如群組13）則會被低估約 6%。</p>
+          <p class="rule-highlight rule-highlight--recommended"><strong>原始資料的推薦標記：<code>**</code> ＝ 9 個 ★ 推薦藍字（中級），<code>#</code> ＝ 22 個 ★ 推薦白字（低級）</strong>，也就是這份整理裡真正想抽到的目標，合計 31 個。藍字名額只有 1 個，那 9 個彼此互斥；白字有 3 格，可從那 22 個裡湊。</p>
           <p>群組3的截圖只揭露到 62.12%，缺的 4 項（餅乾所受傷害量減少 11-20%／21-30%／31-40% 各 12.12%、41-50% 為 1.52%）依同型群組結構推論補齊，補齊後合計 100.00%。這 4 項非截圖實測值，選到群組3 的能力時頁面會標注。其餘群組一律不自行推測補齊。</p>
         </div>
       </details>
@@ -157,13 +157,13 @@
         <summary>計算方式與假設</summary>
         <div class="rules-card__body">
           <p>紫字固定來自群組19；如果沒有釘選紫字，指定內容的命中率依群組19內的項目權重計算，目前為 <strong>1/9</strong>。</p>
-          <p>藍字欄位列出<strong>全部43個中級能力</strong>，其中9個 <code>**</code> 能力會加上 ★ 推薦標記；白字欄位列出全部低級能力，其中27個 <code>#</code> 能力會加上 ★ 推薦標記。兩者都不限制只能選推薦能力。</p>
+          <p>藍字欄位列出<strong>全部43個中級能力</strong>，其中9個 <code>**</code> 能力會加上 ★ 推薦標記；白字欄位列出全部低級能力，其中22個 <code>#</code> 能力會加上 ★ 推薦標記。兩者都不限制只能選推薦能力。</p>
           <p class="rule-highlight">藍字與已設定的白字必須使用不同群組；選定能力後，其他欄位的建議清單會即時排除同群組的所有能力，計算時也會再次驗證。</p>
           <p>紫字、藍字及1個白字設定完成後即可計算；未設定的白字格視為不限能力。機率仍完整套用群組不可重複規則，多個目標白字可用任意排列命中，不使用獨立近似。</p>
 
-          <p class="rule-highlight"><strong>目標範圍：「指定單一格」與「群組任一推薦」。</strong>每個藍字、白字欄位都可以切換要求的嚴格程度——<strong>指定單一格</strong>只認你輸入的那一個數值格；<strong>群組任一推薦</strong>是該群組同等級的 ★ 推薦能力都算命中。兩者只差在「群組內可接受項目的機率」這一個因子，群組權重與群組不可重複規則完全相同，可以直接互相比較。<strong>群組愈大，放寬的效果愈誇張</strong>：群組16 有 24 個白字項目，指定 1 格只有 4.17%，收下 9 個推薦格是 37.50%（<strong>放大 9 倍</strong>）；群組1 只有 4 個白字項目、其中 2 個推薦，放寬只有 2 倍。群組19紫字沒有推薦標記，只能指定單一能力。</p>
+          <p class="rule-highlight"><strong>目標範圍：「指定單一格」與「群組任一推薦」。</strong>每個藍字、白字欄位都可以切換要求的嚴格程度——<strong>指定單一格</strong>只認你輸入的那一個數值格；<strong>群組任一推薦</strong>是該群組同等級的 ★ 推薦能力都算命中。兩者只差在「群組內可接受項目的機率」這一個因子，群組權重與群組不可重複規則完全相同，可以直接互相比較。<strong>群組愈大，放寬的效果愈誇張</strong>：群組16 有 24 個白字項目，指定 1 格只有 4.17%，收下 4 個推薦格是 16.67%（<strong>放大 4 倍</strong>）；群組1 只有 4 個白字項目、其中 2 個推薦，放寬只有 2 倍。群組19紫字沒有推薦標記，只能指定單一能力。</p>
 
-          <p class="rule-highlight rule-highlight--recommended"><strong>釘選格不吃這個設定，這是最容易搞錯的地方。</strong>釘選代表那一格<strong>已經在手上</strong>——它是一個既定的單一能力，計算上恆為 100%。把已釘選的格子放寬成「任一推薦」不會讓它變成別的能力，也不會改變任何數字；真正變好抽的只有<strong>本輪還要重骰</strong>的格子。<strong>後果是：同一組目標換一種釘法，兩格的難易可能整個對調。</strong>以「藍字釘群組5，白字目標是群組1 與群組16 各一格」為例：兩格都用指定單一格時，釘群組16、拼群組1 只要 <strong>271.6 轉</strong>，比反過來的 655.7 轉快 2.4 倍；但只要群組16 那格改成「任一推薦（9 格）」，釘群組1、拼群組16 就只要 <strong>72.9 轉</strong>，反而比 271.6 轉快 3.7 倍——<strong>答案直接翻面</strong>。所以切換範圍之後，兩種釘法都要各按一次、各算一次再決定。</p>
+          <p class="rule-highlight rule-highlight--recommended"><strong>釘選格不吃這個設定，這是最容易搞錯的地方。</strong>釘選代表那一格<strong>已經在手上</strong>——它是一個既定的單一能力，計算上恆為 100%。把已釘選的格子放寬成「任一推薦」不會讓它變成別的能力，也不會改變任何數字；真正變好抽的只有<strong>本輪還要重骰</strong>的格子。<strong>後果是：同一組目標換一種釘法，兩格的難易可能整個對調。</strong>以「藍字釘群組5，白字目標是群組1 與群組16 各一格」為例：兩格都用指定單一格時，釘群組16、拼群組1 只要 <strong>271.4 轉</strong>，比反過來的 655.3 轉快 2.4 倍；但只要群組16 那格改成「任一推薦（4 格）」，釘群組1、拼群組16 就只要 <strong>163.8 轉</strong>，反而比 271.4 轉快 1.7 倍——<strong>答案直接翻面</strong>。所以切換範圍之後，兩種釘法都要各按一次、各算一次再決定。</p>
 
           <p class="rule-highlight">為什麼<strong>「藍字格抽中此群組」跟參數速查表的群組機率不一樣</strong>？抽取順序是「群組 → 項目」，而藍字格保證是中級能力，所以群組機率要先乘上<strong>該群組真的吐出中級的比例</strong>再重新分配。群組11、12、17、18 的項目全是中級，抽中就必定是中級；群組5 只有 2.60% 的項目是中級。因此群組11 的原始群組機率雖然只有 0.14%，藍字格抽中它的機率卻有 3.49%。白字格同理。</p>
           <p class="rule-highlight"><strong>「整顆石頭命中率」三種顏色的口徑不同，欄位提示已各自標注。</strong>紫字與藍字各只有 1 格，而且<strong>只有那一格吐得出該等級的能力</strong>，所以「整顆石頭出現它」與「那一格抽中它」是同一件事——紫字固定 1/9，藍字就是藍字格的命中率，不是近似值。白字有 3 格，顯示的是<strong>任一格命中</strong>的聯合機率（群組不可重複，同一個項目最多出現一次），而且<strong>已經扣掉藍字先卡走一個群組</strong>的影響。驗證方式：44 個藍字的整石命中率加總恰好 ＝ 1（每石 1 個藍字），138 個白字加總恰好 ＝ 3（每石 3 個白字格）。</p>
@@ -173,13 +173,15 @@
       </details>
 
       <details class="rules-card">
-        <summary>群組16 陷阱：藍字該不該接受？</summary>
+        <summary>群組16：藍字照釘，白字別釘</summary>
         <div class="rules-card__body">
-          <p class="rule-highlight rule-highlight--recommended"><strong>先講結論：</strong>目標是「湊到<strong>任意</strong> ★ 推薦能力」時，藍字剛好是群組16 的推薦項<strong>先別急著釘</strong>。藍字避開群組16 約省 <strong>2.3%</strong> 總花費，藍字、白字都避開約省 <strong>6.4%</strong>。（若你<strong>指定</strong>要某一條群組16 藍字，本節不適用，見第 5 節但書。）白字端的對應正手是<strong>釘小群組的指定格、把群組16 留著拼「任一推薦」</strong>，最多可差 9 倍，見第 4 節。</p>
+          <p class="rule-highlight rule-highlight--recommended"><strong>先講結論（2026-08-16 已反轉）：</strong>目標是「湊到<strong>任意</strong> ★ 推薦能力」時，藍字剛好是群組16 的推薦項就<strong>直接釘</strong>——拒絕它會<strong>多花 8.0%</strong>。但<strong>釘白字時要避開群組16</strong>，這樣約省 <strong>2.0%</strong>。兩個方向不再一致，別再一起套用。</p>
+
+          <p class="rule-highlight"><strong>為什麼翻面：</strong>群組16 的 ★ 推薦白字從 9 項收窄為 <strong>4 項</strong>之後，釘住它的藍字只會賠掉 <strong>0.46pt</strong> 的白字命中率（原本是 3.36pt），遠不夠抵銷「把一個 19.8% 難度、單格無備援的欄位丟回池子」的代價。<strong>白字端的規則沒變</strong>，因為它防的是白字把藍字的最大來源鎖死——那取決於群組16 的<strong>藍字</strong>權重，與推薦白字有幾項無關。（若你<strong>指定</strong>要某一條群組16 藍字，本節不適用，見第 5 節但書。）</p>
 
           <h3>1｜群組16 的 4 個 ★ 推薦藍字</h3>
 
-          <p>全部 9 個推薦藍字中，有 4 個住在群組16——接近一半的藍字來源。</p>
+          <p>全部 9 個推薦藍字中，有 4 個住在群組16——接近一半的藍字來源。<strong>這一節完全沒受這次資料異動影響</strong>（變動的全是白字標記）。</p>
 
           <div class="analysis-table-frame">
             <table>
@@ -195,27 +197,27 @@
                 <tr>
                   <td data-label="推薦藍字">果凍魔法師餅乾傷害量增加50%</td>
                   <td data-label="項目機率">0.98%</td>
-                  <td data-label="單轉命中">3.45%</td>
+                  <td data-label="單轉命中">3.41%</td>
                 </tr>
                 <tr>
                   <td data-label="推薦藍字">閃避大師餅乾傷害量增加50%</td>
                   <td data-label="項目機率">0.98%</td>
-                  <td data-label="單轉命中">3.45%</td>
+                  <td data-label="單轉命中">3.41%</td>
                 </tr>
                 <tr>
                   <td data-label="推薦藍字">2個果凍魔法師以上時餅乾傷害量增加50%</td>
                   <td data-label="項目機率">0.98%</td>
-                  <td data-label="單轉命中">3.45%</td>
+                  <td data-label="單轉命中">3.41%</td>
                 </tr>
                 <tr>
                   <td data-label="推薦藍字">2個閃避大師以上時餅乾傷害量增加50%</td>
                   <td data-label="項目機率">0.98%</td>
-                  <td data-label="單轉命中">3.45%</td>
+                  <td data-label="單轉命中">3.41%</td>
                 </tr>
                 <tr class="is-total">
                   <td data-label="推薦藍字">合計（4 項）</td>
                   <td data-label="項目機率">3.92%</td>
-                  <td data-label="單轉命中">13.81%</td>
+                  <td data-label="單轉命中">13.63%</td>
                 </tr>
               </tbody>
             </table>
@@ -225,9 +227,9 @@
 
           <h3>2｜它最常出現，釘在藍字會壓縮白字</h3>
 
-          <p>群組16 的原始抽中率 <strong>14.14%</strong> 是 19 個群組裡最高的（群組5 的 14.13% 幾乎並列）；而且它有 <strong>5.88%</strong> 的項目是中級，比例高於多數群組（群組5 只有 2.60%、群組1 只有 3.03%）。兩者相乘，<strong>藍字格</strong>實際抽中群組16 的機率高達 <strong>20.72%</strong>——比帳面上的原始值更常遇到。</p>
+          <p>群組16 的原始抽中率 <strong>14.14%</strong> 是 19 個群組裡最高的（群組5 的 14.13% 幾乎並列）；而且它有 <strong>5.88%</strong> 的項目是中級，比例高於多數群組（群組5 只有 2.60%、群組1 只有 3.03%）。兩者相乘，<strong>藍字格</strong>實際抽中群組16 的機率高達 <strong>20.45%</strong>——比帳面上的原始值更常遇到。</p>
 
-          <p><strong>問題在於群組不可重複。</strong>群組16 的推薦藍字與推薦白字是<strong>同 4 條技能線</strong>的不同數值，彼此互斥：</p>
+          <p><strong>問題在於群組不可重複</strong>——但 2026-08-16 之後，互斥的<strong>規模已經不對等</strong>：推薦藍字仍是 4 條技能線，推薦白字卻只剩其中 2 條。</p>
 
           <div class="analysis-table-frame">
             <table>
@@ -235,31 +237,31 @@
               <thead>
                 <tr>
                   <th scope="col">稀有度</th>
-                  <th scope="col">內容（4 條技能線 × 對應數值）</th>
+                  <th scope="col">內容</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td data-label="稀有度">★ 推薦藍字（4 項）</td>
-                  <td data-label="內容">果凍魔法師／閃避大師 餅乾傷害量增加 <strong>50%</strong>、2 個以上時餅乾傷害量增加 <strong>50%</strong></td>
+                  <td data-label="內容">果凍魔法師／閃避大師 餅乾傷害量增加 <strong>50%</strong>、2 個以上時餅乾傷害量增加 <strong>50%</strong>（<strong>4 條</strong>技能線）</td>
                 </tr>
                 <tr>
-                  <td data-label="稀有度">★ 推薦白字（9 項）</td>
-                  <td data-label="內容">同 4 條技能線的 <strong>30% / 40%</strong> 版本，外加「閃避大師餅乾傷害量增加 <strong>20%</strong>」</td>
+                  <td data-label="稀有度">★ 推薦白字（4 項）</td>
+                  <td data-label="內容">只剩<strong>閃避大師那 2 條</strong>技能線的 <strong>30% / 40%</strong> 版本</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <p>所以<strong>釘住群組16 的藍字，會把這 9 個推薦白字一起排除</strong>——它們佔全部 27 個推薦白字火力的 <strong>31.2%</strong>，白字每格命中率因此從 16.69% 掉到 <strong>13.33%</strong>（−3.36pt）。相比之下藍字來自群組1 掉 1.62pt、群組5 掉 1.14pt。</p>
+          <p>所以<strong>釘住群組16 的藍字，只會排除這 4 個推薦白字</strong>——它們佔全部 22 個推薦白字火力的 <strong>16.8%</strong>，白字每格命中率因此從 13.81% 掉到 <strong>13.34%</strong>（<strong>只有 −0.46pt</strong>）。相比之下藍字來自群組1 掉 <strong>1.76pt</strong>、群組5 掉 <strong>1.62pt</strong>——<strong>群組16 現在是三個裡代價最小的</strong>。</p>
 
-          <p class="rule-highlight"><strong>口徑說明：</strong>上面這組是<strong>封閉式單格</strong>基準（只排除群組19，不計 3 個白字格彼此互斥）。改用其他章節採用的<strong>含群組互斥、3 格平均</strong>口徑，對應數字是 16.10% → <strong>13.39%</strong>（−2.71pt），群組1 −1.30pt、群組5 −0.65pt。<strong>排序與結論完全一致</strong>，只是絕對幅度小一些——因為藍字本來就一定會卡掉某個群組，「完全不排除」的 16.69% 在真實盤面上並不存在。</p>
+          <p class="rule-highlight"><strong>口徑說明：</strong>上面這組是<strong>封閉式單格</strong>基準（只排除群組19，不計 3 個白字格彼此互斥）。改用其他章節採用的<strong>含群組互斥、3 格平均</strong>口徑，對應數字是 13.82% → <strong>13.40%</strong>（−0.43pt），群組1 −1.88pt、群組5 −1.48pt。<strong>排序與結論完全一致</strong>，兩種口徑這次幾乎重合——因為偏差原本主要來自群組16 被藍字卡位，而它的推薦白字變少後，這件事在總量裡的份量也跟著變小。</p>
 
-          <p class="rule-highlight"><strong>2026-08-06 更新：群組5 不再是免費的退路。</strong>推薦白字增為 27 項後，群組5 拿到 2 個新標記（共 11 項、占白字火力 20.2%），釘住群組5 的 ★ 藍字要付的代價從 −0.10pt 跳到 <strong>−1.14pt</strong>。這直接讓「拒絕群組16 藍字」的收益腰斬（見第 5 節）。</p>
+          <p class="rule-highlight rule-highlight--recommended"><strong>2026-08-16 更新：這一格數字就是整節結論反轉的來源。</strong>推薦白字收窄為 22 項前，釘住群組16 的 ★ 藍字要賠 <strong>−3.36pt</strong>（9 個推薦白字、31.2% 的火力），那是「藍字先別急著釘」整條建議的立論基礎；現在只賠 <strong>−0.46pt</strong>，前提消失了。反倒是群組1（−1.76pt）與群組5（−1.62pt）接手成為最貴的兩個——但它們貴的幅度也還不足以讓「拒絕已到手的推薦藍字」划算，見第 5 節。</p>
 
           <h3>3｜反過來把群組16 釘在白字：其他推薦藍字的機率被拉高</h3>
 
-          <p>白字格釘走群組16 之後，藍字格就再也抽不到它，那 20.72% 的權重會重新分配給其餘群組——<strong>剩下 5 個非群組16 推薦藍字的機率同步放大約 1.26 倍</strong>：</p>
+          <p>白字格釘走群組16 之後，藍字格就再也抽不到它，那 20.45% 的權重會重新分配給其餘群組——<strong>剩下 5 個非群組16 推薦藍字的機率同步放大約 1.26 倍</strong>：</p>
 
           <div class="analysis-table-frame">
             <table>
@@ -276,46 +278,46 @@
                 <tr>
                   <td data-label="推薦藍字">餅乾造成的傷害量增加41-50%</td>
                   <td data-label="群組">群組1</td>
-                  <td data-label="基準">3.45%</td>
-                  <td data-label="釘走16後">4.35%</td>
+                  <td data-label="基準">3.40%</td>
+                  <td data-label="釘走16後">4.28%</td>
                 </tr>
                 <tr>
                   <td data-label="推薦藍字">黃色技能傷害量增加41-50%</td>
                   <td data-label="群組">群組5</td>
                   <td data-label="基準">0.70%</td>
-                  <td data-label="釘走16後">0.89%</td>
+                  <td data-label="釘走16後">0.87%</td>
                 </tr>
                 <tr>
                   <td data-label="推薦藍字">紅色技能傷害量增加41-50%</td>
                   <td data-label="群組">群組5</td>
                   <td data-label="基準">0.70%</td>
-                  <td data-label="釘走16後">0.89%</td>
+                  <td data-label="釘走16後">0.87%</td>
                 </tr>
                 <tr>
                   <td data-label="推薦藍字">藍色技能傷害量增加41-50%</td>
                   <td data-label="群組">群組5</td>
                   <td data-label="基準">0.70%</td>
-                  <td data-label="釘走16後">0.89%</td>
+                  <td data-label="釘走16後">0.87%</td>
                 </tr>
                 <tr>
                   <td data-label="推薦藍字">出現更多技能能量果凍</td>
                   <td data-label="群組">群組5</td>
                   <td data-label="基準">0.70%</td>
-                  <td data-label="釘走16後">0.89%</td>
+                  <td data-label="釘走16後">0.87%</td>
                 </tr>
                 <tr class="is-total">
                   <td data-label="推薦藍字">合計（5 項）</td>
                   <td data-label="群組">—</td>
-                  <td data-label="基準">6.27%</td>
-                  <td data-label="釘走16後">7.91%</td>
+                  <td data-label="基準">6.18%</td>
+                  <td data-label="釘走16後">7.77%</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <p class="rule-highlight"><strong>但別誤會：這是「補一點、丟一半」。</strong>拉高的只有這 5 項（+1.64pt），代價卻是整組群組16 的 13.81% 全部歸零——藍字命中<strong>任一</strong>推薦項的機率從 20.08% 崩到 <strong>7.91%</strong>，是 18 個群組裡跌幅最大的。所以正解不是「把群組16 釘在白字」，而是<strong>兩邊都別去碰它</strong>。</p>
+          <p class="rule-highlight"><strong>但別誤會：這是「補一點、丟一半」。</strong>拉高的只有這 5 項（+1.59pt），代價卻是整組群組16 的 13.63% 全部歸零——藍字命中<strong>任一</strong>推薦項的機率從 19.82% 崩到 <strong>7.77%</strong>，是 18 個群組裡跌幅最大的。<strong>所以白字端的正解是：別把群組16 釘在白字。</strong>這條規則<strong>不受 2026-08-16 的資料異動影響</strong>——它算的是群組16 的<strong>藍字</strong>權重。但它<strong>不能</strong>再推論成「藍字端也要避開群組16」，那一半已經反轉，見第 5 節。</p>
 
-          <h3>4｜白字端的正解：釘群組1 的指定格，把群組16 留著拼「任一推薦」</h3>
+          <h3>4｜白字端的正解：釘小群組的指定格，把群組16 留著拼「任一推薦」</h3>
 
           <p>第 3 節說「別把群組16 釘掉」，這裡給出對應的正手。情境：<strong>藍字已釘群組5，白字還差群組1 與群組16 各一格，重骰紫字＋2 格白字</strong>（每轉 5,000 點）。四種組合的終局成本：</p>
 
@@ -333,52 +335,52 @@
               </thead>
               <tbody>
                 <tr class="is-best">
-                  <td data-label="第2個釘位"><strong>群組1 的指定格</strong></td>
-                  <td data-label="要拼的白字"><strong>群組16 任一推薦（9 格）</strong></td>
-                  <td data-label="單次達成率"><strong>1.3726%</strong></td>
-                  <td data-label="期望轉數"><strong>72.9 轉</strong></td>
-                  <td data-label="期望點數"><strong>364,278 點</strong></td>
+                  <td data-label="第2個釘位"><strong>群組16 的指定格</strong></td>
+                  <td data-label="要拼的白字"><strong>群組1 任一推薦（2 格）</strong></td>
+                  <td data-label="單次達成率"><strong>0.7369%</strong></td>
+                  <td data-label="期望轉數"><strong>135.7 轉</strong></td>
+                  <td data-label="期望點數"><strong>678,528 點</strong></td>
                 </tr>
                 <tr>
-                  <td data-label="第2個釘位">群組16 的指定格</td>
-                  <td data-label="要拼的白字">群組1 任一推薦（2 格）</td>
-                  <td data-label="單次達成率">0.7363%</td>
-                  <td data-label="期望轉數">135.8 轉</td>
-                  <td data-label="期望點數">679,031 點</td>
+                  <td data-label="第2個釘位">群組1 的指定格</td>
+                  <td data-label="要拼的白字">群組16 任一推薦（4 格）</td>
+                  <td data-label="單次達成率">0.6104%</td>
+                  <td data-label="期望轉數">163.8 轉</td>
+                  <td data-label="期望點數">819,128 點</td>
                 </tr>
                 <tr>
                   <td data-label="第2個釘位">群組16 的指定格</td>
                   <td data-label="要拼的白字">群組1 的指定格</td>
-                  <td data-label="單次達成率">0.3682%</td>
-                  <td data-label="期望轉數">271.6 轉</td>
-                  <td data-label="期望點數">1,358,062 點</td>
+                  <td data-label="單次達成率">0.3684%</td>
+                  <td data-label="期望轉數">271.4 轉</td>
+                  <td data-label="期望點數">1,357,056 點</td>
                 </tr>
                 <tr>
                   <td data-label="第2個釘位">群組1 的指定格</td>
                   <td data-label="要拼的白字">群組16 的指定格</td>
-                  <td data-label="單次達成率">0.1525%</td>
-                  <td data-label="期望轉數">655.7 轉</td>
-                  <td data-label="期望點數">3,278,501 點</td>
+                  <td data-label="單次達成率">0.1526%</td>
+                  <td data-label="期望轉數">655.3 轉</td>
+                  <td data-label="期望點數">3,276,510 點</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <p>最好與最差差 <strong>9 倍</strong>，而且兩者<strong>釘的是同一格</strong>（群組1）——差別只在你對群組16 有多挑。以下是這個組合勝出的三個理由。</p>
+          <p>最好與最差差 <strong>4.8 倍</strong>。<strong>2026-08-16 的資料異動換掉了這張表的冠軍</strong>：群組16 的推薦格從 9 格減到 4 格後，「釘群組1、拼群組16 任一推薦」從 72.9 轉退到 <strong>163.8 轉</strong>，冠軍改由「釘群組16、拼群組1 任一推薦」接手（135.7 轉）。把兩格的目標範圍排列成四種組合來看，<strong>其中三種該釘的都是群組16</strong>——只有「群組1 指定、群組16 任一推薦」這一種例外。</p>
 
-          <p class="rule-highlight"><strong>理由 1｜釘選要釘小群組：釘一格等於從池子裡挖走整個群組。</strong>群組1 只占白字池 <strong>4.63%</strong>，釘掉它、剩下 2 格白字面對的池子只縮 19.0%（含藍字的群組5）；釘群組16 卻一口氣挖走 <strong>13.91%</strong>，池子縮 28.3%。表面上釘群組16 讓剩下的目標更好抽（群組1 每格 1.61% 對群組16 每格 0.72%），但那是拿<strong>最大的推薦白字來源永久鎖死</strong>換來的——正是第 3 節說的「補一點、丟一半」。</p>
+          <p class="rule-highlight"><strong>要點 1｜放寬倍率決定一切，而群組16 的倍率被砍半了。</strong>群組16 有 24 個白字項目、其中 <strong>4 個</strong>是 ★ 推薦，放寬倍率 <strong>4 倍</strong>（原本 9 個、9 倍）；群組1 只有 4 個項目、2 個推薦，放寬倍率 2 倍。把群組16 留在池子裡，每格命中率從 0.72% 跳到 <strong>2.86%</strong>（原本跳到 6.44%）；反過來留群組1，從 1.61% 到 3.23%。<strong>兩者現在幾乎打平</strong>——這就是冠軍換人的原因。</p>
 
-          <p class="rule-highlight"><strong>理由 2｜留下的目標要留大群組：只有大群組吃得到「任一推薦」的紅利。</strong>群組16 有 24 個白字項目、其中 9 個是 ★ 推薦，放寬倍率 <strong>9 倍</strong>；群組1 只有 4 個項目、2 個推薦，放寬倍率只有 2 倍。把群組16 留在池子裡，每格命中率從 0.72% 跳到 <strong>6.44%</strong>；反過來留群組1，只從 1.61% 到 3.23%。<strong>大群組當釘選標的很虧，當收割對象很賺</strong>——因為它「抽中群組」本來就容易，難的只是「抽中指定那一格」，而任一推薦正好把這個難點拆掉。</p>
+          <p class="rule-highlight"><strong>要點 2｜打平之後，勝負由「釘走誰對池子的傷害比較小」決定。</strong>群組1 只占白字池 <strong>4.63%</strong>，群組16 占 <strong>13.91%</strong>。釘走群組16 等於從池子裡挖走一大塊，剩下的群組1 占比會被推得更高、更好抽；反過來釘走群組1 對群組16 的提升就小得多。當兩邊的放寬倍率打平時，<strong>這個不對稱就成了決定性因素</strong>，所以釘群組16 略勝（135.7 對 163.8 轉）。</p>
 
-          <p class="rule-highlight"><strong>理由 3｜那 9 倍不是「多開了幾條路」，而是把原本會報廢的格子改判成命中。</strong>群組不可重複，所以抽中群組16 卻不是你要的項目時，<strong>那一格報廢、群組還被鎖死，第二格再也補不回來</strong>。而「抽中群組16」的總量是固定的 <strong>17.17%</strong>，放寬只改變它怎麼分：指定單一格是 0.72% 命中／<strong>16.45% 報廢</strong>（23/24 抽錯），任一推薦是 6.44% 命中／<strong>10.73% 報廢</strong>（15/24）。多出來的 5.72pt 命中，正好等於少掉的 5.72pt 報廢。<strong>群組愈大、指定得愈死，被白白鎖掉的格子就愈多</strong>，這才是大群組指定單一格的真正成本。</p>
+          <p class="rule-highlight"><strong>要點 3｜放寬不是「多開幾條路」，而是把原本會報廢的格子改判成命中。</strong>群組不可重複，所以抽中群組16 卻不是你要的項目時，<strong>那一格報廢、群組還被鎖死，第二格再也補不回來</strong>。而「抽中群組16」的總量是固定的 <strong>17.17%</strong>，放寬只改變它怎麼分：指定單一格是 0.72% 命中／<strong>16.45% 報廢</strong>（23/24 抽錯），任一推薦（4 格）是 2.86% 命中／<strong>14.31% 報廢</strong>（20/24）。多出來的 2.15pt 命中，正好等於少掉的 2.15pt 報廢（收窄前是 5.72pt）。<strong>群組愈大、指定得愈死，被白白鎖掉的格子就愈多。</strong></p>
 
-          <p class="rule-highlight"><strong>提醒一個不會發生的加成：</strong>只剩一個白字目標時，2 格聯合機率與群組內命中率<strong>成正比</strong>，所以這 9 倍會原封不動傳到最後，不會再被放大或縮水——白字 2 格聯合 1.3726% → <strong>12.3532%</strong>，乘上紫字 1/9 就是 0.1525% → <strong>1.3726%</strong>。上表的 9 倍就是這麼來的，沒有第二層效果。</p>
+          <p class="rule-highlight"><strong>提醒一個不會發生的加成：</strong>只剩一個白字目標時，2 格聯合機率與群組內命中率<strong>成正比</strong>，所以這 4 倍會原封不動傳到最後，不會再被放大或縮水——白字 2 格聯合 1.3734% → <strong>5.4936%</strong>，乘上紫字 1/9 就是 0.1526% → <strong>0.6104%</strong>。上表的 4 倍就是這麼來的，沒有第二層效果。</p>
 
-          <p><strong>但書：</strong>前提是你<strong>真的</strong>接受群組16 那 9 個推薦白字裡的任何一個。若你指定要群組16 的某一格（例如「果凍魔法師餅乾傷害量增加40%」），就回到表格最後一列的 655.7 轉，該釘的反而變成群組16（271.6 轉，快 2.4 倍）。<strong>同一組目標，光是改變「我有多挑」，該釘哪一格就會換答案</strong>——上方計算器的每個白字欄位都有「指定單一格 / 任一推薦」切換鈕，兩種釘法各按一次再決定。</p>
+          <p><strong>但書：</strong>上表第 2 列的前提是你<strong>真的</strong>接受群組16 那 4 個推薦白字裡的任何一個（閃避大師／2個閃避大師以上 的 30%、40%）。若你指定要群組16 的某一格，就回到最後一列的 655.3 轉，該釘的一樣是群組16（271.4 轉，快 2.4 倍）。<strong>同一組目標，光是改變「我有多挑」，該釘哪一格就可能換答案</strong>——上方計算器的每個白字欄位都有「指定單一格 / 任一推薦」切換鈕，兩種釘法各按一次再決定。</p>
 
           <h3>5｜模擬對照與實務做法</h3>
 
-          <p>每個策略 120,000 次，含標準誤：</p>
+          <p>每個策略 120,000 次，採 CRN（共用亂數）配對——同一批亂數餵給每個策略再逐樣本相減，因此信賴區間比獨立取樣窄得多：</p>
 
           <div class="analysis-table-frame">
             <table>
@@ -393,35 +395,45 @@
               <tbody>
                 <tr>
                   <td data-label="策略">不挑群組（基準）</td>
-                  <td data-label="期望總點數">131,206 ±313</td>
+                  <td data-label="期望總點數">144,077 ±358</td>
                   <td data-label="相對基準節省">—</td>
                 </tr>
-                <tr>
-                  <td data-label="策略">只有白字避開群組16</td>
-                  <td data-label="期望總點數">128,256 ±311</td>
-                  <td data-label="相對基準節省">2,950 ±865（2.2%）／顯著</td>
+                <tr class="is-best">
+                  <td data-label="策略"><strong>只有白字避開群組16</strong></td>
+                  <td data-label="期望總點數"><strong>141,128 ±351</strong></td>
+                  <td data-label="相對基準節省"><strong>2,949 ±244（2.0%）／顯著</strong></td>
                 </tr>
                 <tr>
                   <td data-label="策略">藍字避開群組16</td>
-                  <td data-label="期望總點數">128,159 ±292</td>
-                  <td data-label="相對基準節省">3,047 ±839（2.3%）／顯著</td>
+                  <td data-label="期望總點數">155,662 ±393</td>
+                  <td data-label="相對基準節省">−11,585 ±709（<strong>−8.0%</strong>）／顯著變貴</td>
                 </tr>
-                <tr class="is-best">
-                  <td data-label="策略">藍字、白字都避開群組16</td>
-                  <td data-label="期望總點數">122,748 ±281</td>
-                  <td data-label="相對基準節省">8,459 ±825（6.4%）／顯著</td>
+                <tr>
+                  <td data-label="策略">藍字、白字都避開群組16（舊解）</td>
+                  <td data-label="期望總點數">151,671 ±386</td>
+                  <td data-label="相對基準節省">−7,594 ±740（−5.3%）／顯著變貴</td>
+                </tr>
+                <tr>
+                  <td data-label="策略">藍字、白字都避開群組1</td>
+                  <td data-label="期望總點數">143,286 ±354</td>
+                  <td data-label="相對基準節省">791 ±406（0.5%）／顯著但極小</td>
+                </tr>
+                <tr>
+                  <td data-label="策略">藍字、白字都避開群組5</td>
+                  <td data-label="期望總點數">144,184 ±358</td>
+                  <td data-label="相對基準節省">−107 ±362（−0.1%）／雜訊內</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <p>拒絕群組16 等於放棄近一半的藍字來源，上表已經把「要等更久才遇到推薦藍字」的代價算進去，結果仍然值得避開。</p>
+          <p class="rule-highlight rule-highlight--recommended"><strong>舊解現在是負優化。</strong>「藍字避開群組16」從省 2.3% 變成<strong>多花 8.0%</strong>，「藍白都避開」從省 6.4% 變成多花 5.3%。道理很直接：拒絕一個已經到手的 ★ 推薦藍字，代價是把一個 <strong>19.8% 難度、單格無備援</strong>的欄位丟回池子；而換來的好處——保住群組16 的白字火力——已經從 3.36pt 縮到 <strong>0.46pt</strong>，完全不夠付。</p>
 
-          <p class="rule-highlight"><strong>2026-08-06 的質變：兩邊的效益已經拉平。</strong>推薦白字增為 27 項前，「藍字避開群組16」單獨就值 4.3%、遠勝白字側的 2.3%；現在兩者幾乎相等（<strong>2.3% 對 2.2%</strong>）。原因是群組5 這條退路變貴了——拒絕群組16 的藍字後退到群組5，以前幾乎免費，現在要付 −1.14pt。<strong>這條優化的總幅度也逐版縮水：11.3% → 8.2% → 6.4%</strong>，但仍然值得做。</p>
+          <p class="rule-highlight"><strong>白字端的規則沒變，而且是唯一還有效的那一條。</strong>釘白字時避開群組16 省 <strong>2.0%</strong>，因為它防的是「白字把藍字的最大來源鎖死」——那取決於群組16 的<strong>藍字</strong>權重（釘走它，藍字命中推薦從 19.82% 崩到 7.77%），與推薦白字有幾項無關。這也是三次資料異動裡唯一方向從未變過的規則。</p>
 
-          <p class="rule-highlight"><strong>兩者是交互作用，不是各自獨立。</strong>兩者合起來省 6.4%，大於各自相加（2.2% + 2.3%）——因為只有當你開始拒絕群組16 的藍字，才會頻繁面臨「該釘哪個白字」的抉擇。</p>
+          <p class="rule-highlight"><strong>群組1、群組5 有接手成為新陷阱嗎？沒有。</strong>雖然釘它們的藍字代價現在最高（−1.76pt／−1.62pt），但避開群組1 只省 0.5%、避開群組5 落在雜訊內。<strong>結論是：★ 推薦藍字不論來自哪個群組，到手就釘。</strong></p>
 
-          <p><strong>實務做法：</strong>藍字剛好是群組16 的推薦項時先別釘，把第二個釘位留給白字；等白字湊到 1 個推薦項之後，若已經沒有非群組16 的白字可釘，接受群組16 的藍字也無妨（122,118 對 122,748，差距落在雜訊內，兩種做法可視為等價）。</p>
+          <p><strong>實務做法：</strong>藍字只要是 ★ 推薦項就直接釘，不必看群組；第二個釘位留給白字時，優先挑<strong>非群組16</strong> 的那一個。</p>
 
           <p class="rule-highlight"><strong>但書：</strong>以上只適用於「任意 ★ 推薦藍字都算達成」的目標。如果你<strong>指定</strong>要群組16 的某一條藍字（例如「2個閃避大師以上時餅乾傷害量增加50%」），這段分析不適用——必須接受釘住群組16，白字只能從群組 1／5／9／10／15 的 18 個推薦項裡湊。上方計算器就是為這種「指定目標」情境設計的。</p>
         </div>
@@ -430,7 +442,7 @@
       <details class="rules-card">
         <summary>盤面已有「1 藍 + 2 白」：該釘哪兩格？</summary>
         <div class="rules-card__body">
-          <p class="rule-highlight rule-highlight--recommended"><strong>先講結論：</strong>某一轉開出<strong>紫字沒中、藍字是 ★ 推薦、3 格白字裡恰好 2 個是 ★ 推薦</strong>（只差紫字就完工）時，<strong>不要釘 2 白</strong>。同樣是 5,000 點／轉，釘「藍＋1 白」的單轉完工率是 <strong>2.60%</strong>，釘 2 白只有 1.84%，快 <strong>1.41 倍</strong>。（釘「藍＋1 白」與整盤空洗在整段花費上等價，見第 5 節；紫字沒中，所以「紫字優先」在這裡不適用。）</p>
+          <p class="rule-highlight rule-highlight--recommended"><strong>先講結論（2026-08-16 更新）：</strong>某一轉開出<strong>紫字沒中、藍字是 ★ 推薦、3 格白字裡恰好 2 個是 ★ 推薦</strong>（只差紫字就完工）時，<strong>四種第一手已經幾乎等價，全距只有 0.6%</strong>，挑順手的就好。單轉完工率仍是釘「藍＋1 白」領先（<strong>2.39%</strong> 對釘 2 白的 2.00%，快 1.20 倍），但整段期望花費的差距只剩 280 點。舊版「不要釘 2 白」的 1% 級差距已經被推薦白字收窄的效應抹平——見第 4 節。（紫字沒中，所以「紫字優先」在這裡不適用。）</p>
 
           <h3>1｜兩個候選第一手</h3>
 
@@ -450,13 +462,13 @@
                   <td data-label="第一手">釘 藍＋1 白</td>
                   <td data-label="重骰">紫 ＋ 2 白</td>
                   <td data-label="完工條件">紫字命中（1/9）<strong>且</strong> 2 白中至少 1 個 ★</td>
-                  <td data-label="單轉完工率"><strong>2.596%</strong></td>
+                  <td data-label="單轉完工率"><strong>2.392%</strong></td>
                 </tr>
                 <tr>
                   <td data-label="第一手">釘 2 白</td>
                   <td data-label="重骰">紫 ＋ 藍 ＋ 白</td>
                   <td data-label="完工條件">紫字命中（1/9）<strong>且</strong> 藍字中 ★ 推薦</td>
-                  <td data-label="單轉完工率">1.837%</td>
+                  <td data-label="單轉完工率">2.000%</td>
                 </tr>
               </tbody>
             </table>
@@ -464,7 +476,7 @@
 
           <p>數據來自 600,000 次條件式模擬：以完整引擎反覆生成盤面，只保留符合上述條件的樣本，因此群組落點是該情境下的真實條件分布。</p>
 
-          <h3>2｜為什麼釘 2 白會輸：白字有備援，藍字沒有</h3>
+          <h3>2｜為什麼釘 2 白仍略輸：白字有備援，藍字沒有</h3>
 
           <p>兩種釘法都是「丟掉一格已經到手的推薦項」，差別在於<strong>補回來的難度</strong>：</p>
 
@@ -482,20 +494,20 @@
                 <tr>
                   <td data-label="丟掉的東西">藍字（＝釘 2 白的代價）</td>
                   <td data-label="能補的格數">1 格，沒有備援</td>
-                  <td data-label="補回機率">16.5%</td>
+                  <td data-label="補回機率">18.0%</td>
                 </tr>
                 <tr class="is-best">
                   <td data-label="丟掉的東西">1 個白字（＝釘 藍＋1 白的代價）</td>
                   <td data-label="能補的格數">2 格輪流抽</td>
-                  <td data-label="補回機率"><strong>23.4%</strong></td>
+                  <td data-label="補回機率"><strong>21.5%</strong></td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <p class="rule-highlight">白字每格的命中率其實更低——藍字與 1 個白字都釘住後，剩下 2 格各自只有約 <strong>11.3%</strong>（兩個群組已被卡掉，不是一般盤面的 16.1%）——但白字<strong>天生有備援</strong>：3 格湊 2 格，丟掉一個還剩 2 格輪流抽，合起來仍有 23.4%；藍字只有 1 格、沒有備援，補回機率只有 16.5%。<strong>釘 2 白等於把唯一沒備援的那格丟回池子</strong>，方向剛好違反「該釘住的是最難的兩格」這條原則。推薦白字增為 27 項後白字的備援又更厚，這條原則站得更穩。</p>
+          <p class="rule-highlight">白字每格的命中率其實更低——藍字與 1 個白字都釘住後，剩下 2 格各自只有約 <strong>11.3%</strong>（兩個群組已被卡掉，不是一般盤面的 13.8%）——但白字<strong>天生有備援</strong>：3 格湊 2 格，丟掉一個還剩 2 格輪流抽，合起來仍有 21.5%；藍字只有 1 格、沒有備援，補回機率只有 18.0%。<strong>釘 2 白等於把唯一沒備援的那格丟回池子</strong>，方向仍然違反「該釘住的是最難的兩格」這條原則。<strong>但兩者已經很接近了</strong>：推薦白字收窄為 22 項後白字的備援變薄（23.4% → 21.5%），同時藍字端因為群組16 比較少被白字封鎖而變好（16.5% → 18.0%），兩邊一起往中間靠。</p>
 
-          <p>上表兩個補回機率直接由前一張表的模擬值換算（<code>2.596% ÷ 1/9 ＝ 23.4%</code>、<code>1.837% ÷ 1/9 ＝ 16.5%</code>），因此與完工率同一口徑。<strong>這裡不能用 <code>1 − (1−p)²</code> 的獨立近似</strong>：兩個白字格會互相排除群組並不獨立，而且 p 必須是「藍字與 1 白都已釘住」之後的 11.3%，不是一般盤面的 16.1%。</p>
+          <p>上表兩個補回機率直接由前一張表的模擬值換算（<code>2.392% ÷ 1/9 ＝ 21.5%</code>、<code>2.000% ÷ 1/9 ＝ 18.0%</code>），因此與完工率同一口徑。<strong>這裡不能用 <code>1 − (1−p)²</code> 的獨立近似</strong>：兩個白字格會互相排除群組並不獨立，而且 p 必須是「藍字與 1 白都已釘住」之後的 11.3%，不是一般盤面的 13.8%。</p>
 
           <h3>3｜分支：那個藍字是不是群組16</h3>
 
@@ -514,37 +526,39 @@
               <tbody>
                 <tr>
                   <td data-label="盤面分支">藍字來自群組16</td>
-                  <td data-label="出現率">63.9%</td>
-                  <td data-label="釘藍+1白">2.424%</td>
-                  <td data-label="釘2白">2.123%</td>
-                  <td data-label="倍數">1.14x</td>
+                  <td data-label="出現率">72.6%</td>
+                  <td data-label="釘藍+1白">2.447%</td>
+                  <td data-label="釘2白">2.136%</td>
+                  <td data-label="倍數">1.15x</td>
                 </tr>
                 <tr class="is-best">
                   <td data-label="盤面分支">藍字非群組16</td>
-                  <td data-label="出現率">36.1%</td>
-                  <td data-label="釘藍+1白"><strong>2.901%</strong></td>
-                  <td data-label="釘2白">1.333%</td>
-                  <td data-label="倍數"><strong>2.18x</strong></td>
+                  <td data-label="出現率">27.4%</td>
+                  <td data-label="釘藍+1白"><strong>2.248%</strong></td>
+                  <td data-label="釘2白">1.640%</td>
+                  <td data-label="倍數"><strong>1.37x</strong></td>
                 </tr>
                 <tr class="is-total">
                   <td data-label="盤面分支">合計</td>
                   <td data-label="出現率">100%</td>
-                  <td data-label="釘藍+1白">2.596%</td>
-                  <td data-label="釘2白">1.837%</td>
-                  <td data-label="倍數">1.41x</td>
+                  <td data-label="釘藍+1白">2.392%</td>
+                  <td data-label="釘2白">2.000%</td>
+                  <td data-label="倍數">1.20x</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <p>群組16 分支之所以幾乎打平，是因為兩邊同時被<strong>群組不可重複</strong>影響、方向相反：</p>
+          <p><strong>兩個分支這次一起被拉近了</strong>（收窄前是 1.14x／2.18x／1.41x）。主因是<strong>非群組16 分支從 2.18x 掉到 1.37x</strong>：釘 2 白時被釘走的白字現在比較少落在群組16，重骰的藍字因此比較不會被封死，「釘 2 白」這一手就沒那麼糟了。</p>
 
-          <p><strong>釘 藍＋1 白變差</strong>：釘住群組16 的 ★ 藍字會連帶封掉 9 個 ★ 推薦白字（31.2% 的白字火力），白字每格從 16.69% 掉到 13.33%（封閉式單格口徑；含群組互斥的 3 格平均口徑為 16.10% → 13.39%）。</p>
+          <p>群組16 分支本來就幾乎打平，因為兩邊同時被<strong>群組不可重複</strong>影響、方向相反：</p>
+
+          <p><strong>釘 藍＋1 白變差</strong>：釘住群組16 的 ★ 藍字會連帶封掉 4 個 ★ 推薦白字（16.8% 的白字火力），白字每格從 13.81% 掉到 13.34%（封閉式單格口徑；含群組互斥的 3 格平均口徑為 13.82% → 13.40%）。<strong>這個代價已經比收窄前小很多</strong>（原本是 16.69% → 13.33%）。</p>
           <p><strong>釘 2 白變好</strong>：藍字既然佔著群組16，那 2 個白字就<strong>必定不是</strong>群組16；釘走它們不會封鎖群組16，重骰的藍字仍抽得到那 4 個 ★ 推薦項。</p>
 
-          <p>一降一升，倍數從 2.18x 被壓到 1.14x。而 9 個 ★ 推薦藍字有 4 個住在群組16、群組16 又是藍字格權重最高的群組，所以<strong>這個分支就佔了 63.9%</strong>——實戰上比另一個分支更常遇到。</p>
+          <p>而 9 個 ★ 推薦藍字有 4 個住在群組16、群組16 又是藍字格權重最高的群組，所以<strong>這個分支佔了 72.6%</strong>（收窄前是 63.9%）——藍字佔著群組16 時被封掉的推薦白字從 9 個減為 4 個，「3 白中恰好 2 個推薦」變得更容易同時成立，這個分支自然更常見。</p>
 
-          <h3>4｜整段期望花費：方向一致，但只差 1%</h3>
+          <h3>4｜整段期望花費：全距只有 0.6%</h3>
 
           <p>上面是單轉效率；這顆石頭還要洗很久，真正該比的是<strong>從此盤面到完工的期望總花費</strong>。用同一批起始盤面配對、只在第一轉強制指定釘法，第二轉起一律套用同一套續盤策略（250,000 次）：</p>
 
@@ -560,47 +574,49 @@
               </thead>
               <tbody>
                 <tr class="is-best">
-                  <td data-label="第一手">釘 藍＋1 白</td>
-                  <td data-label="期望總點數"><strong>122,516 ±197</strong></td>
-                  <td data-label="配對差"><strong>−1,174 ±547</strong>／顯著</td>
-                </tr>
-                <tr class="is-best">
                   <td data-label="第一手">整盤空洗（2,000／轉）</td>
-                  <td data-label="期望總點數">122,530 ±195</td>
-                  <td data-label="配對差">−1,160 ±543／顯著</td>
+                  <td data-label="期望總點數"><strong>140,697 ±242</strong></td>
+                  <td data-label="配對差"><strong>−836 ±639</strong>／顯著</td>
                 </tr>
                 <tr>
                   <td data-label="第一手">只釘 藍（3,000／轉）</td>
-                  <td data-label="期望總點數">122,651 ±195</td>
-                  <td data-label="配對差">−1,039 ±543／顯著</td>
+                  <td data-label="期望總點數">141,132 ±242</td>
+                  <td data-label="配對差">−400 ±644／雜訊內</td>
+                </tr>
+                <tr>
+                  <td data-label="第一手">釘 藍＋1 白</td>
+                  <td data-label="期望總點數">141,253 ±243</td>
+                  <td data-label="配對差">−280 ±181／顯著</td>
                 </tr>
                 <tr>
                   <td data-label="第一手">釘 2 白</td>
-                  <td data-label="期望總點數">123,690 ±197</td>
+                  <td data-label="期望總點數">141,533 ±243</td>
                   <td data-label="配對差">—</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <p>排序與單轉一致，但<strong>幅度只有 1%</strong>。原因是瓶頸仍然是紫字的 1/9：紫字沒中時怎麼釘都得等，第一手的影響很快被後續策略吸收掉。值得注意的是<strong>「整盤空洗」與「釘 藍＋1 白」已經完全打平（−14 ±543）</strong>——多付的 3,000 點釘選費，剛好被那一轉高出來的完工率抵銷。前三名彼此無法區分，只有「釘 2 白」明確落後。</p>
+          <p><strong>四個選項的全距只有 836 點、約 0.6%</strong>（收窄前是 1%）。排序仍是「釘 2 白」墊底，但它與「釘 藍＋1 白」的差距只剩 280 點。原因是瓶頸仍然是紫字的 1/9：紫字沒中時怎麼釘都得等，第一手的影響很快被後續策略吸收掉。續盤策略採用「群組16：藍字照釘，白字別釘」那張卡片的新最佳解（藍字照釘、白字避開群組16）。</p>
 
           <h3>5｜實務做法</h3>
 
-          <p class="rule-highlight rule-highlight--recommended"><strong>本節唯一穩固的結論是「不要釘 2 白」</strong>——它是四個選項裡唯一明確落後的（比釘藍＋1 白貴 1,174 ±547）。另外三個彼此的差距都落在雜訊內，挑順手的就好：<strong>釘藍＋1 白與整盤空洗等價</strong>（配對差 −14 ±543），多付的 3,000 點釘選費剛好被那一轉高出來的完工率抵銷。若真要釘，白字挑非群組16 的那個；藍字剛好是群組16 的 ★ 推薦項時倍數只剩 1.14x，整盤空洗更划算。</p>
+          <p class="rule-highlight rule-highlight--recommended"><strong>本節現在沒有強結論——四個第一手都可以。</strong>整盤空洗略勝（比釘 2 白省 836 ±639），也最省事；「釘 2 白」只落後 0.6%，不再是明確要避開的選項。舊版「不要釘 2 白」的建議<strong>方向仍在、幅度已消失</strong>，不值得為它改變操作習慣。</p>
 
-          <p class="rule-highlight"><strong>這一節沒有推翻「紫字優先」。</strong>那條優先序講的是「<strong>手上已經有</strong>這一格想要的內容時，釘住它值多少」；本節的前提是<strong>紫字沒中</strong>，根本不能釘，所以紫字不在候選名單裡。兩條規則是接力關係：<strong>紫中了就釘紫＋藍</strong>（終局 4.90%／轉，全場最強）；<strong>紫沒中就照本節處理</strong>。</p>
+          <p class="rule-highlight"><strong>若要釘白字，挑非群組16 的那一個</strong>（理由見上一張卡片，這條規則沒變）。<strong>藍字則不論來自哪個群組都可以釘</strong>——這與舊版「群組16 藍字先別急著釘」相反，該建議在新資料下會多花 8.0%。</p>
 
-          <p class="rule-highlight"><strong>與「釘白＋白」路線數字的對照：</strong>整條路線邊際化時，「釘白＋白」的單轉成功率只有 1.02%，本節卻是 1.84%，兩者不衝突。前者是逐轉「先到先釘」慢慢累積 2 白的結果，落點嚴重偏向群組16；本節條件在<strong>單轉同時開出 2 個 ★ 白字</strong>，落點平均得多（含群組16 的比例只有 22.7%），所以成功率較高。推薦白字增為 27 項後兩者的落差還拉大了，因為路線邊際化那一側惡化得更快。</p>
+          <p class="rule-highlight"><strong>這一節沒有推翻「紫字優先」。</strong>那條優先序講的是「<strong>手上已經有</strong>這一格想要的內容時，釘住它值多少」；本節的前提是<strong>紫字沒中</strong>，根本不能釘，所以紫字不在候選名單裡。兩條規則是接力關係：<strong>紫中了就釘紫＋藍</strong>（終局 4.11%／轉，全場最強）；<strong>紫沒中就照本節處理</strong>。</p>
+
+          <p class="rule-highlight"><strong>與「釘白＋白」路線數字的對照：</strong>整條路線邊際化時，「釘白＋白」的單轉成功率只有 1.26%，本節卻是 2.00%，兩者不衝突。前者是逐轉「先到先釘」慢慢累積 2 白的結果，落點偏向群組16；本節條件在<strong>單轉同時開出 2 個 ★ 白字</strong>，落點平均得多（含群組16 的比例只有 <strong>11.5%</strong>，收窄前是 22.7%），所以成功率較高。推薦白字收窄後兩者的落差反而縮小了，因為路線邊際化那一側改善得比較多。</p>
         </div>
       </details>
 
       <details class="rules-card">
         <summary>抽大雨的評估：要不要花 3,000 釘走群組16？</summary>
         <div class="rules-card__body">
-          <p class="rule-highlight rule-highlight--recommended"><strong>先講結論：</strong>只想抽到群組5 的藍字<strong>「出現更多技能能量果凍」</strong>（大雨）時，<strong>整盤空轉（2,000／轉）比在白字釘走群組16（3,000／轉）省 19%</strong>——期望 <strong>283,840 點</strong> 對 337,533 點。釘走群組16 確實有效，但只把命中率拉高 <strong>1.26 倍</strong>，而你付的是 <strong>1.5 倍</strong>的錢，<strong>買貴了</strong>。唯一的例外：若瓶頸是轉數而不是點數，釘走群組16 少轉 21%，這筆交易才划算。</p>
+          <p class="rule-highlight rule-highlight--recommended"><strong>先講結論：</strong>只想抽到群組5 的藍字<strong>「出現更多技能能量果凍」</strong>（大雨）時，<strong>整盤空轉（2,000／轉）比在白字釘走群組16（3,000／轉）省 19%</strong>——期望 <strong>287,678 點</strong> 對 343,290 點。釘走群組16 確實有效，但只把命中率拉高 <strong>1.26 倍</strong>，而你付的是 <strong>1.5 倍</strong>的錢，<strong>買貴了</strong>。唯一的例外：若瓶頸是轉數而不是點數，釘走群組16 少轉 21%，這筆交易才划算。</p>
 
-          <h3>1｜目標拆解：0.7046%／轉</h3>
+          <h3>1｜目標拆解：0.6952%／轉</h3>
 
           <p>「出現更多技能能量果凍」是<strong>群組5 的中級（藍字）項目</strong>，原始項目機率 0.20%。藍字格只有 1 格、而且<strong>只有那一格吐得出中級能力</strong>，所以「整顆石頭出現它」與「藍字格抽中它」是同一件事，就是兩層相乘：</p>
 
@@ -617,7 +633,7 @@
               <tbody>
                 <tr>
                   <td data-label="因子">藍字格抽中群組5</td>
-                  <td data-label="數值">9.1601%</td>
+                  <td data-label="數值">9.0379%</td>
                   <td data-label="怎麼來的">群組機率 14.13% × 群組5 的中級占比 2.60／99.92，再於 18 個有中級項目的群組間正規化</td>
                 </tr>
                 <tr>
@@ -627,14 +643,14 @@
                 </tr>
                 <tr class="is-total">
                   <td data-label="因子">單轉命中</td>
-                  <td data-label="數值">0.7046%</td>
-                  <td data-label="怎麼來的">兩者相乘＝期望 141.9 轉</td>
+                  <td data-label="數值">0.6952%</td>
+                  <td data-label="怎麼來的">兩者相乘＝期望 143.8 轉</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <p>釘走群組16 的作用只有一個：它是<strong>藍字格權重最高的群組（20.72%）</strong>，白字釘掉它之後藍字再也抽不到，那份權重會重新分配給其餘群組，群組5 從 9.1601% 升到 <strong>11.5544%</strong>（第 3 節那張表的 0.70% → 0.89% 就是這一條）。</p>
+          <p>釘走群組16 的作用只有一個：它是<strong>藍字格權重最高的群組（20.45%）</strong>，白字釘掉它之後藍字再也抽不到，那份權重會重新分配給其餘群組，群組5 從 9.0379% 升到 <strong>11.3607%</strong>（第 3 節那張表的 0.70% → 0.87% 就是這一條）。</p>
 
           <h3>2｜兩個方案的正面對決</h3>
 
@@ -654,35 +670,35 @@
               <tbody>
                 <tr class="is-best">
                   <td data-label="方案"><strong>不釘選、整盤空轉</strong></td>
-                  <td data-label="落在群組5">9.1601%</td>
-                  <td data-label="單轉命中率">0.7046%</td>
-                  <td data-label="期望轉數">141.9 轉</td>
+                  <td data-label="落在群組5">9.0379%</td>
+                  <td data-label="單轉命中率">0.6952%</td>
+                  <td data-label="期望轉數">143.8 轉</td>
                   <td data-label="每轉">2,000</td>
-                  <td data-label="期望花費"><strong>283,840 點</strong></td>
+                  <td data-label="期望花費"><strong>287,678 點</strong></td>
                 </tr>
                 <tr>
                   <td data-label="方案">白字釘走群組16</td>
-                  <td data-label="落在群組5">11.5544%</td>
-                  <td data-label="單轉命中率">0.8888%</td>
-                  <td data-label="期望轉數">112.5 轉</td>
+                  <td data-label="落在群組5">11.3607%</td>
+                  <td data-label="單轉命中率">0.8739%</td>
+                  <td data-label="期望轉數">114.4 轉</td>
                   <td data-label="每轉">3,000</td>
-                  <td data-label="期望花費">337,533 點</td>
+                  <td data-label="期望花費">343,290 點</td>
                 </tr>
                 <tr>
                   <td data-label="方案">白字釘走群組16 ＋ 群組6</td>
-                  <td data-label="落在群組5">13.2909%</td>
-                  <td data-label="單轉命中率">1.0224%</td>
-                  <td data-label="期望轉數">97.8 轉</td>
+                  <td data-label="落在群組5">13.0352%</td>
+                  <td data-label="單轉命中率">1.0027%</td>
+                  <td data-label="期望轉數">99.7 轉</td>
                   <td data-label="每轉">5,000</td>
-                  <td data-label="期望花費">489,055 點</td>
+                  <td data-label="期望花費">498,649 點</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <h3>3｜為什麼划不來：打平點只有 2,523 點</h3>
+          <h3>3｜為什麼划不來：打平點只有 2,514 點</h3>
 
-          <p class="rule-highlight"><strong>釘選費用要跟命中率提升同步才划得來。</strong>釘走群組16 把單轉命中率乘上 <code>4.013874 ÷ 3.182109 ＝ 1.2614</code> 倍，所以這個動作真正「值」的價格是 <code>2,000 × 1.2614 ＝ <strong>2,523 點／轉</strong></code>。遊戲收你 3,000，<strong>每轉多付約 477 點買不到對等的機率</strong>。這不是邊際案例——群組16 的藍字權重上限就是 20.72%，把它整個拔掉也只能換到 1.26 倍，<strong>結構上永遠碰不到 1.5 倍的門檻</strong>。</p>
+          <p class="rule-highlight"><strong>釘選費用要跟命中率提升同步才划得來。</strong>釘走群組16 把單轉命中率乘上 <code>11.3607 ÷ 9.0379 ＝ 1.2570</code> 倍，所以這個動作真正「值」的價格是 <code>2,000 × 1.2570 ＝ <strong>2,514 點／轉</strong></code>。遊戲收你 3,000，<strong>每轉多付約 486 點買不到對等的機率</strong>。這不是邊際案例——群組16 的藍字權重上限就是 20.45%，把它整個拔掉也只能換到 1.26 倍，<strong>結構上永遠碰不到 1.5 倍的門檻</strong>。</p>
 
           <p>加碼釘更多群組只會更糟，因為費用跳得比機率快：</p>
 
@@ -701,24 +717,24 @@
               <tbody>
                 <tr class="is-best">
                   <td data-label="釘走">（不釘，基準）</td>
-                  <td data-label="群組5占比">9.1601%</td>
+                  <td data-label="群組5占比">9.0379%</td>
                   <td data-label="機率提升">1.000x</td>
                   <td data-label="費用倍數">1.0x（2,000）</td>
                   <td data-label="划算">基準</td>
                 </tr>
                 <tr>
                   <td data-label="釘走">群組16</td>
-                  <td data-label="群組5占比">11.5544%</td>
-                  <td data-label="機率提升">1.261x</td>
+                  <td data-label="群組5占比">11.3607%</td>
+                  <td data-label="機率提升">1.257x</td>
                   <td data-label="費用倍數">1.5x（3,000）</td>
                   <td data-label="划算">否（差 0.24x）</td>
                 </tr>
                 <tr>
                   <td data-label="釘走">群組16 ＋ 群組6</td>
-                  <td data-label="群組5占比">13.2909%</td>
-                  <td data-label="機率提升">1.451x</td>
+                  <td data-label="群組5占比">13.0352%</td>
+                  <td data-label="機率提升">1.442x</td>
                   <td data-label="費用倍數">2.5x（5,000）</td>
-                  <td data-label="划算">否（差 1.05x）</td>
+                  <td data-label="划算">否（差 1.06x）</td>
                 </tr>
               </tbody>
             </table>
@@ -728,12 +744,12 @@
 
           <p>這是兩件事，方向剛好相反，要看你的瓶頸在哪裡：</p>
 
-          <p><strong>省點數 → 空轉：</strong>少花 53,693 點（18.9%）。<br>
-            <strong>省轉數／省時間 → 釘走群組16：</strong>112.5 轉對 141.9 轉，少轉 <strong>20.7%</strong>。</p>
+          <p><strong>省點數 → 空轉：</strong>少花 55,612 點（16.2%）。<br>
+            <strong>省轉數／省時間 → 釘走群組16：</strong>114.4 轉對 143.8 轉，少轉 <strong>20.4%</strong>。</p>
 
-          <p>換句話說，釘走群組16 是<strong>「用 19% 的錢換 21% 的轉數」</strong>。點數不是瓶頸（例如活動快截止、或單純不想一直點）時，這是合理的交易；純比 CP 值就是空轉。</p>
+          <p>換句話說，釘走群組16 是<strong>「用 19% 的錢換 20% 的轉數」</strong>。點數不是瓶頸（例如活動快截止、或單純不想一直點）時，這是合理的交易；純比 CP 值就是空轉。</p>
 
-          <p class="rule-highlight"><strong>抓預算不要只看平均值。</strong>這是幾何分布，右偏很嚴重——平均 283,840 點，但一半的人 196,049 點以內就抽到了，同時有 10% 的人會超過 651,261 點：</p>
+          <p class="rule-highlight"><strong>抓預算不要只看平均值。</strong>這是幾何分布，右偏很嚴重——平均 287,678 點，但一半的人 198,715 點以內就抽到了，同時有 10% 的人會超過 660,113 點：</p>
 
           <div class="analysis-table-frame">
             <table>
@@ -749,15 +765,15 @@
               <tbody>
                 <tr class="is-best">
                   <td data-label="方案">空轉（2,000／轉）</td>
-                  <td data-label="中位數">98.0 轉／196,049 點</td>
-                  <td data-label="平均">141.9 轉／283,840 點</td>
-                  <td data-label="90%分位">325.6 轉／651,261 點</td>
+                  <td data-label="中位數">99.4 轉／198,715 點</td>
+                  <td data-label="平均">143.8 轉／287,678 點</td>
+                  <td data-label="90%分位">330.1 轉／660,113 點</td>
                 </tr>
                 <tr>
                   <td data-label="方案">釘走群組16（3,000／轉）</td>
-                  <td data-label="中位數">77.6 轉／232,919 點</td>
-                  <td data-label="平均">112.5 轉／337,533 點</td>
-                  <td data-label="90%分位">257.9 轉／773,740 點</td>
+                  <td data-label="中位數">79.0 轉／236,905 點</td>
+                  <td data-label="平均">114.4 轉／343,290 點</td>
+                  <td data-label="90%分位">262.3 轉／786,993 點</td>
                 </tr>
               </tbody>
             </table>
@@ -765,13 +781,13 @@
 
           <h3>5｜兩個沒計價的代價與一個前提</h3>
 
-          <p class="rule-highlight"><strong>代價 1｜那一格會卡著群組16 的廢白字。</strong>「釘走」是為了排除而釘，被釘住的白字本身通常沒有價值，而且整組群組16 對其他四格<strong>一起歸零</strong>。如果你之後還想拼群組16 的推薦白字（任一推薦 37.50%，見第 4 節），這條路等於自己封掉——這正是第 3 節「補一點、丟一半」的同一個陷阱，只是換到藍字端來看。</p>
+          <p class="rule-highlight"><strong>代價 1｜那一格會卡著群組16 的廢白字。</strong>「釘走」是為了排除而釘，被釘住的白字本身通常沒有價值，而且整組群組16 對其他四格<strong>一起歸零</strong>。如果你之後還想拼群組16 的推薦白字（任一推薦 16.67%，見第 4 節），這條路等於自己封掉——這正是第 3 節「補一點、丟一半」的同一個陷阱，只是換到藍字端來看。</p>
 
           <p class="rule-highlight"><strong>代價 2｜空轉的五格是同時在滾的。</strong>方案一每轉五格全開，紫字、白字順手中獎的價值沒算進上表；方案二那一格是鎖死的。這一項只會讓空轉的優勢再擴大，不會反過來。</p>
 
           <p><strong>前提：模型假設藍字先抽並卡住群組</strong>（白字擋不到藍字，只有<strong>已釘選</strong>的群組排除得掉藍字）。兩個方案共用同一個假設，比較是對等的；若實際抽取順序不是如此，兩邊會同向偏移。</p>
 
-          <p><strong>適用範圍：</strong>本節是<strong>指定單一藍字</strong>的算法。若你的標準放寬成「群組5 的任一 ★ 推薦藍字都收」，分子要換成推薦項目的機率合計，兩個方案的絕對數字都會變小，但 1.2614 倍與 1.5 倍的對比<strong>完全不變</strong>——因為釘選只影響群組層的權重，跟群組內收幾格無關。<strong>結論不會翻面。</strong></p>
+          <p><strong>適用範圍：</strong>本節是<strong>指定單一藍字</strong>的算法。若你的標準放寬成「群組5 的任一 ★ 推薦藍字都收」，分子要換成推薦項目的機率合計，兩個方案的絕對數字都會變小，但 1.2570 倍與 1.5 倍的對比<strong>完全不變</strong>——因為釘選只影響群組層的權重，跟群組內收幾格無關。<strong>結論不會翻面。</strong></p>
         </div>
       </details>
     </div>
