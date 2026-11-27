@@ -46,8 +46,30 @@ set "EXIT_CODE=0"
 goto :finish
 
 :no_changes
+rem Nothing new to stage. But an earlier run may have committed and then failed to
+rem push, which would leave that commit stranded while this script reports success.
+rem So before saying "nothing to do", check for local commits GitHub never received.
+rem origin/main only moves on a successful fetch or push, so if it is behind HEAD
+rem there really is something waiting. If the ref is missing, fall through quietly.
+set "AHEAD="
+for /f "delims=" %%A in ('call git rev-list --count origin/main..HEAD 2^>nul') do set "AHEAD=%%A"
+if not defined AHEAD goto :nothing_to_do
+if "%AHEAD%"=="0" goto :nothing_to_do
+
 echo.
-echo No website changes were found. Nothing needs to be uploaded.
+echo No new file changes, but %AHEAD% commit(s) were never pushed to GitHub.
+echo Retrying the push...
+call git push origin main
+if errorlevel 1 goto :push_failed
+
+echo.
+echo Update complete. GitHub Pages should publish it within a few minutes.
+set "EXIT_CODE=0"
+goto :finish
+
+:nothing_to_do
+echo.
+echo No website changes were found, and everything is already on GitHub.
 set "EXIT_CODE=0"
 goto :finish
 
@@ -100,6 +122,8 @@ goto :finish
 :push_failed
 echo.
 echo Push failed. Check the network, GitHub login, and remote changes.
+echo Your changes are already committed on this computer, so nothing is lost.
+echo Fix the problem and run this file again - it will retry the push.
 goto :finish
 
 :finish
