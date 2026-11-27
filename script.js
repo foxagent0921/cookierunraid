@@ -2,15 +2,16 @@
   "use strict";
 
   const GROUP_RATES = [
-    4.57, 4.57, 9.15, 4.57, 14.13, 13.72, 4.57, 4.57, 4.57, 9.15,
-    0.14, 0.14, 2.22, 4.57, 4.57, 14.14, 0.28, 0.09, 0.25,
+    4.38, 4.38, 8.77, 4.38, 20.89, 3.29, 8.77, 4.38, 4.38, 4.38,
+    0.26, 0.26, 5.16, 4.38, 4.38, 13.15, 4.38,
   ];
   const HIGH_GRADE_GROUP_ID = 19;
+  // 群組19 獨立運作：301階以上保證出現 1 個高級能力，而它是唯一擁有高級項目的群組，
+  // 所以「抽中群組19」的條件機率恆為 1，它的群組機率不參與任何計算。
+  // 官方的附加能力群組機率表也只列到群組17，沒有它。這裡填 100 代表「高級名額的全部」。
+  const HIGH_GRADE_GROUP_RATE = 100;
   // 301階石頭的欄位組成：1 紫、1 藍、3 白。白字有三格，指定白字出現在任一格都算命中。
   const WHITE_SLOT_COUNT = 3;
-  // 群組3的截圖只揭露到 62.12%，缺的四項依同型結構推論補齊後合計 100.00%；
-  // 數字不是截圖直接讀到的，相關計算需附上提醒。
-  const INFERRED_GROUP_ID = 3;
   const GRADE_LOW = "low";
   const GRADE_INTERMEDIATE = "intermediate";
   const GRADE_HIGH = "high";
@@ -20,39 +21,39 @@
   // 依等級分開存放，名稱對不上等級就不會被標記，可在啟動檢查時抓出兩邊不同步。
   const RECOMMENDED_ITEMS_BY_GRADE = new Map([
     [GRADE_INTERMEDIATE, new Set([
-      "餅乾造成的傷害量增加41-50%",
-      "黃色技能傷害量增加41-50%",
-      "紅色技能傷害量增加41-50%",
-      "藍色技能傷害量增加41-50%",
+      "餅乾造成的傷害增加41-50%",
+      "黃色技能造成的傷害增加41-50%",
+      "紅色技能造成的傷害增加41-50%",
+      "藍色技能造成的傷害增加41-50%",
       "出現更多技能能量果凍",
-      "果凍魔法師餅乾傷害量增加50%",
-      "閃避大師餅乾傷害量增加50%",
-      "2個果凍魔法師以上時餅乾傷害量增加50%",
-      "2個閃避大師以上時餅乾傷害量增加50%",
+      "果凍魔法師造成傷害增加41-50%",
+      "閃避大師造成傷害增加41-50%",
+      "2個果凍魔法師以上時討伐隊造成傷害增加41-50%",
+      "2個閃避大師以上時討伐隊造成傷害增加41-50%",
     ])],
     [GRADE_LOW, new Set([
-      "餅乾造成的傷害量增加21-30%",
-      "餅乾造成的傷害量增加31-40%",
-      "黃色技能傷害量增加21-30%",
-      "黃色技能傷害量增加31-40%",
-      "紅色技能傷害量增加21-30%",
-      "紅色技能傷害量增加31-40%",
-      "藍色技能傷害量增加21-30%",
-      "藍色技能傷害量增加31-40%",
+      "餅乾造成的傷害增加11-20%",
+      "餅乾體力增加21-40%",
+      "開始時獲得2個護盾",
+      "黃色技能造成的傷害增加11-20%",
+      "紅色技能造成的傷害增加11-20%",
+      "藍色技能造成的傷害增加11-20%",
+      "黃色技能能量獲得量+4-6%",
+      "紅色技能能量獲得量+4-6%",
+      "藍色技能能量獲得量+4-6%",
       "出現技能能量果凍",
-      "黃色技能能量獲得量+10-12%",
-      "紅色技能能量獲得量+7-9%",
-      "紅色技能能量獲得量+10-12%",
-      "藍色技能能量獲得量+10-12%",
-      "遊戲速度加快16-20%",
-      "體力恢復量增加11-15%",
-      "體力恢復量增加16-20%",
-      "無視障礙物衝撞機率70%",
-      "無視障礙物衝撞機率85%",
-      "閃避大師餅乾傷害量增加30%",
-      "閃避大師餅乾傷害量增加40%",
-      "2個閃避大師以上時餅乾傷害量增加30%",
-      "2個閃避大師以上時餅乾傷害量增加40%",
+      "餅乾所受傷害減少16-30%",
+      "基本速度+4-6%",
+      "體力恢復量增加6-10%",
+      "暴擊傷害增加61-80%",
+      "無視障礙物衝撞機率55%",
+      "盾牌守護者造成傷害增加11-20%",
+      "果凍魔法師造成傷害增加11-20%",
+      "閃避大師造成傷害增加11-20%",
+      "2個盾牌守護者以上時討伐隊造成傷害增加11-20%",
+      "2個果凍魔法師以上時討伐隊造成傷害增加11-20%",
+      "2個閃避大師以上時討伐隊造成傷害增加11-20%",
+      "每40秒削弱怪物防禦力20%(維持25秒)",
     ])],
   ]);
 
@@ -61,194 +62,90 @@
 
   const entry = (name, rate, grade = GRADE_LOW) => ({ name, rate, grade });
   const intermediateEntry = (name, rate) => entry(name, rate, GRADE_INTERMEDIATE);
-  const ranged = (prefix, values, rates, intermediateIndexes = []) =>
-    values.map((value, index) => entry(
-      `${prefix}${value}`,
-      rates[index],
-      intermediateIndexes.includes(index) ? GRADE_INTERMEDIATE : GRADE_LOW,
-    ));
+  const groupRate = (id) =>
+    (id === HIGH_GRADE_GROUP_ID ? HIGH_GRADE_GROUP_RATE : GROUP_RATES[id - 1]);
   const group = (id, entries) => ({
     id,
-    rate: GROUP_RATES[id - 1],
+    rate: groupRate(id),
     entries: id === HIGH_GRADE_GROUP_ID
       ? entries.map((currentEntry) => ({ ...currentEntry, grade: GRADE_HIGH }))
       : entries,
   });
 
-  const fiveTier = (prefix, values, normalRate, rareRate) =>
-    ranged(prefix, values, [normalRate, normalRate, normalRate, normalRate, rareRate], [4]);
+  // 改版後的統一模板：每個系列固定 3 階「低／低／中」，機率比例恆為 8 : 8 : 1。
+  // 群組內有 N 個系列時，每系列先均分 100/N，再按 8:8:1 拆成三階。
+  const tier = (prefix, values, rates) => values.map((value, index) => entry(
+    `${prefix}${value}`,
+    rates[index],
+    index === values.length - 1 ? GRADE_INTERMEDIATE : GRADE_LOW,
+  ));
+  const SOLO = [47.06, 47.06, 5.88];  // 1 個系列
+  const DUO = [23.53, 23.53, 2.94];   // 2 個系列
+  const TRIO = [15.69, 15.69, 1.96];  // 3 個系列
+  const HEX = [7.84, 7.84, 0.98];     // 6 個系列
+  const NONA = [4.94, 4.94, 0.62];    // 群組5：9 個顏色系列 ＋ 果凍
 
-  const colorSeries = (prefix, values, rates) =>
-    ["黃色", "紅色", "藍色"].flatMap((color) =>
-      ranged(`${color}${prefix}`, values, rates, [values.length - 1]));
+  const colorSeries = (lead, prefix, values, rates) =>
+    ["黃", "紅", "藍"].flatMap((color) => tier(`${lead}${color}色${prefix}`, values, rates));
+
+  const DAMAGE_TIERS = ["1-10%", "11-20%", "41-50%"];
+  const ENERGY_TIERS = ["1-3%", "4-6%", "13-15%"];
+  const JOBS = ["盾牌守護者", "果凍魔法師", "閃避大師"];
 
   const groups = [
-    group(1, fiveTier(
-      "餅乾造成的傷害量增加",
-      ["1-10%", "11-20%", "21-30%", "31-40%", "41-50%"],
-      24.24,
-      3.03,
-    )),
-    group(2, fiveTier(
-      "怪物造成的傷害量增加",
-      ["1-10%", "11-20%", "21-30%", "31-40%", "41-50%"],
-      24.24,
-      3.03,
-    )),
-    // 「餅乾所受傷害量減少」的 11-20% 之後四項截圖未拍到，依群組10 的同型結構推論補齊；
-    // 補上後群組合計剛好 100.00%，但這四筆屬推論值，選到本群組時會附上提醒。
+    group(1, tier("餅乾造成的傷害增加", DAMAGE_TIERS, SOLO)),
+    group(2, tier("怪物造成的傷害增加", DAMAGE_TIERS, SOLO)),
     group(3, [
-      ...ranged(
-        "餅乾體力增加",
-        ["1-10%", "11-20%", "21-30%", "31-40%", "41-50%"],
-        [12.12, 12.12, 12.12, 12.12, 1.52],
-        [4],
-      ),
-      ...ranged(
-        "餅乾所受傷害量減少",
-        ["1-10%", "11-20%", "21-30%", "31-40%", "41-50%"],
-        [12.12, 12.12, 12.12, 12.12, 1.52],
-        [4],
-      ),
+      ...tier("餅乾體力增加", ["1-20%", "21-40%", "81-100%"], DUO),
+      ...tier("開始時獲得", ["1個護盾", "2個護盾", "5個護盾"], DUO),
     ]),
-    group(4, fiveTier(
-      "怪物體力增加",
-      ["1-8%", "9-16%", "17-24%", "25-32%", "33-40%"],
-      24.24,
-      3.03,
-    )),
+    group(4, tier("怪物體力增加", ENERGY_TIERS, SOLO)),
     group(5, [
-      ...colorSeries(
-        "技能傷害量增加",
-        ["1-10%", "11-20%", "21-30%", "31-40%", "41-50%"],
-        [1.96, 1.96, 1.96, 1.96, 0.20],
-      ),
-      ...colorSeries(
-        "技能能量獲得量減少",
-        ["1-3%", "4-6%", "7-9%", "10-12%", "13-15%"],
-        [1.96, 1.96, 1.96, 1.96, 0.20],
-      ),
-      entry("出現技能能量果凍", 3.24),
-      intermediateEntry("出現更多技能能量果凍", 0.20),
-      ...colorSeries(
-        "技能傷害量減少",
-        ["1-3%", "4-6%", "7-9%", "10-12%", "13-15%"],
-        [1.96, 1.96, 1.96, 1.96, 0.20],
-      ),
-      ...colorSeries(
-        "技能能量獲得量+",
-        ["1-3%", "4-6%", "7-9%", "10-12%", "13-15%"],
-        [1.96, 1.96, 1.96, 1.96, 0.20],
-      ),
+      ...colorSeries("", "技能造成的傷害增加", DAMAGE_TIERS, NONA),
+      ...colorSeries("", "技能能量獲得量減少", ENERGY_TIERS, NONA),
+      // 技能能量果凍是「2 項一組」（低 1 中 1），沒有中間階。這讓群組5 多一個中級名額，
+      // 中級占比成為 6.20%，是 17 個群組裡唯一偏離 5.88% 的。
+      entry("出現技能能量果凍", 4.94),
+      intermediateEntry("出現更多技能能量果凍", 0.62),
+      ...colorSeries("", "技能能量獲得量+", ENERGY_TIERS, NONA),
     ]),
-    group(6, colorSeries(
-      "技能所受傷害量減少",
-      ["1-5%", "6-10%", "11-15%", "16-20%", "21-25%"],
-      [8.08, 8.08, 8.08, 8.08, 1.01],
-    ).map((item) => ({ ...item, name: `怪物因${item.name}` }))),
-    group(7, fiveTier(
-      "餅乾所受傷害量增加",
-      ["1-10%", "11-20%", "21-30%", "31-40%", "41-50%"],
-      24.24,
-      3.03,
-    )),
+    group(6, colorSeries("怪物因", "技能所受傷害減少", ENERGY_TIERS, TRIO)),
+    group(7, [
+      ...tier("餅乾所受傷害增加", DAMAGE_TIERS, DUO),
+      ...tier("餅乾所受傷害減少", ["1-15%", "16-30%", "61-75%"], DUO),
+    ]),
     group(8, [
-      entry("視野變狹窄", 24.24),
-      entry("視野更狹窄", 24.24),
-      entry("視野非常狹窄", 24.24),
-      entry("視野超級狹窄", 24.24),
-      intermediateEntry("視野極為狹窄", 3.03),
+      entry("視野變狹窄", 47.06),
+      entry("視野更狹窄", 47.06),
+      intermediateEntry("視野極為狹窄", 5.88),
     ]),
-    group(9, fiveTier(
-      "遊戲速度加快",
-      ["1-5%", "6-10%", "11-15%", "16-20%", "21-30%"],
-      24.24,
-      3.03,
-    )),
-    group(10, [
-      ...ranged(
-        "體力恢復量增加",
-        ["1-5%", "6-10%", "11-15%", "16-20%", "21-25%"],
-        [12.12, 12.12, 12.12, 12.12, 1.52],
-        [4],
-      ),
-      ...ranged(
-        "體力恢復量減少",
-        ["1-3%", "4-6%", "7-9%", "10-11%", "12-14%"],
-        [12.12, 12.12, 12.12, 12.12, 1.52],
-        [4],
-      ),
-    ]),
-    group(11, [intermediateEntry("套用強度150的磁力", 100.00)]),
+    group(9, tier("基本速度+", ENERGY_TIERS, SOLO)),
+    group(10, tier("體力恢復量增加", ["1-5%", "6-10%", "21-25%"], SOLO)),
+    group(11, [intermediateEntry("發動150px範圍的磁力", 100.00)]),
     group(12, [intermediateEntry("跳躍次數增加3次", 100.00)]),
-    group(13, [
-      intermediateEntry("每隔一段時間獲得熊熊果凍派對道具", 6.25),
-      entry("掉下普通果凍", 18.75),
-      entry("掉下黃色熊熊果凍", 18.75),
-      entry("掉下粉紅熊熊果凍", 18.75),
-      entry("掉下冰塊熊熊果凍", 18.75),
-      entry("掉下彩虹熊熊果凍", 18.75),
+    group(13, ["普通果凍", "黃色熊熊果凍", "粉紅熊熊果凍", "冰塊熊熊果凍", "彩虹熊熊果凍"]
+      .map((jelly) => entry(`掉下${jelly}`, 20.00))),
+    group(14, tier("暴擊傷害增加", ["41-60%", "61-80%", "121-150%"], SOLO)),
+    group(15, [
+      entry("無視障礙物衝撞機率40%", 47.06),
+      entry("無視障礙物衝撞機率55%", 47.06),
+      intermediateEntry("無視障礙物衝撞機率100%", 5.88),
     ]),
-    group(14, fiveTier(
-      "暴擊傷害增加",
-      ["40-50%", "50-60%", "60-70%", "70-80%", "80-100%"],
-      24.24,
-      3.03,
-    )),
-    group(15, fiveTier(
-      "無視障礙物衝撞機率",
-      ["40%", "55%", "70%", "85%", "100%"],
-      24.24,
-      3.03,
-    )),
     group(16, [
-      ...["盾牌守護者", "果凍魔法師", "閃避大師"].flatMap((job) =>
-        ranged(
-          `${job}餅乾傷害量增加`,
-          ["10%", "20%", "30%", "40%", "50%"],
-          [3.92, 3.92, 3.92, 3.92, 0.98],
-          [4],
-        )),
-      ...ranged(
-        "2個盾牌守護者以上時餅乾傷害量增加",
-        ["10%", "20%", "30%", "40%", "50%"],
-        [3.92, 3.92, 3.92, 3.92, 0.98],
-        [4],
-      ),
-      ...ranged(
-        "2個果凍魔法師以上時餅乾傷害量增加",
-        ["10%", "20%", "30%", "40%", "50%"],
-        [3.92, 3.92, 3.92, 3.92, 0.98],
-        [4],
-      ),
-      ...ranged(
-        "2個閃避大師以上時餅乾傷害量增加",
-        ["10%", "20%", "30%", "40%", "50%"],
-        [3.92, 3.92, 3.92, 3.92, 0.98],
-        [4],
-      ),
+      ...JOBS.flatMap((job) => tier(`${job}造成傷害增加`, DAMAGE_TIERS, HEX)),
+      ...JOBS.flatMap((job) => tier(`2個${job}以上時討伐隊造成傷害增加`, DAMAGE_TIERS, HEX)),
     ]),
-    group(17, [
-      intermediateEntry("每隔一段時間弱化怪物防禦力（維持7秒）", 50.00),
-      intermediateEntry("每隔一段時間強化怪物防禦力（維持35秒）", 50.00),
-    ]),
-    group(18, [
-      intermediateEntry("討伐時100%獲得鑽石砂糖結晶", 1.52),
-      intermediateEntry("討伐時100%獲得金砂糖結晶", 7.58),
-      intermediateEntry("討伐時100%獲得隨機技能寶石(S)", 15.15),
-      intermediateEntry("討伐時100%獲得隨機技能寶石(A)", 30.30),
-      intermediateEntry("討伐時100%獲得隨機技能寶石(B)", 45.45),
-    ]),
+    group(17, tier("每40秒削弱怪物防禦力", ["10%(維持25秒)", "20%(維持25秒)", "50%(維持25秒)"], SOLO)),
+    // 群組19：高級（紫字）。未列於官方機率表，依更新公告「刪 7 / 留 2 / 增 5」重建為 7 項。
+    // 項目機率假設等權（改版前的 9 項也是等權各 11.11%），待官方截圖確認。
     group(19, [
-      entry("所有分數X2倍", 11.11),
-      entry("餅乾所受傷害量X3倍", 11.11),
-      entry("體力恢復量-15%", 11.11),
-      entry("畫面變黑", 11.11),
-      entry("果凍隱形", 11.11),
-      entry("超級磁力", 11.11),
-      entry("裁剪畫面", 11.11),
-      entry("遮蔽畫面", 11.11),
-      entry("遊戲速度加快，餅乾造成的傷害量增加30%", 11.11),
+      entry("所有分數X2倍", 14.29),
+      entry("超級磁力", 14.29),
+      entry("擁有護盾時，所有果凍+70,000分", 14.29),
+      entry("依據體力的比例，基本速度最多可加快20%", 14.29),
+      entry("基本速度加快30%，體力恢復量減少15%", 14.29),
+      entry("餅乾造成的傷害增加80%，基本速度減緩10%", 14.29),
+      entry("技能能量獲得量增加18%", 14.29),
     ]),
   ];
 
@@ -461,7 +358,10 @@
     groupCell.append(createGroupIdentity(row.groupId));
 
     const groupRateCell = createCell("群組機率", "rate");
-    groupRateCell.textContent = formatRate(row.groupRate);
+    // 群組19 獨立運作，官方機率表沒有它的群組機率，顯示百分比會被誤讀成實際抽取率。
+    groupRateCell.textContent = row.groupId === HIGH_GRADE_GROUP_ID
+      ? "獨立抽取"
+      : formatRate(row.groupRate);
 
     const itemCell = createCell("附加能力");
     applyAbilityGrade(itemCell, row);
@@ -480,10 +380,9 @@
     groups.forEach((currentGroup) => {
       const option = document.createElement("option");
       option.value = String(currentGroup.id);
-      const highGradeLabel = currentGroup.id === HIGH_GRADE_GROUP_ID
-        ? "｜高級，301階以上必定出現"
-        : "";
-      option.textContent = `群組 ${currentGroup.id}（${formatRate(currentGroup.rate)}${highGradeLabel}）`;
+      option.textContent = currentGroup.id === HIGH_GRADE_GROUP_ID
+        ? `群組 ${currentGroup.id}（獨立抽取｜高級，301階以上必定出現）`
+        : `群組 ${currentGroup.id}（${formatRate(currentGroup.rate)}）`;
       options.append(option);
     });
 
@@ -817,7 +716,7 @@
     {
       id: "purple",
       label: "1. 紫字目標能力（只限群組19）",
-      placeholder: "輸入紫字內容，從群組19的 9 個高級能力選擇",
+      placeholder: "輸入紫字內容，從群組19的 7 個高級能力選擇",
     },
     {
       id: "blue",
@@ -915,7 +814,8 @@
   }
 
   // 「群組內任一推薦」模式：可接受的不是單一數值格，而是該群組同等級的全部 ★ 推薦項目。
-  // 群組愈大差距愈誇張——群組16 有 24 個白字項目，指定 1 格只有 4.17%，收 9 個推薦格就是 37.50%。
+  // 改版後這件事兩極化：群組16 有 12 個白字項目，指定 1 格只有 8.33%，收 6 個推薦格就是 50.00%；
+  // 但單系列的小群組（1、7、9、10、14、15、17）只有 1 個推薦格，放大倍率是 1.0，切換不會改變數字。
   function getRecommendedRowsInGrade(groupId, grade) {
     return getRowsForGrade(groupId, grade).filter((row) => row.recommended);
   }
@@ -1165,10 +1065,6 @@
     if (slot.anyRecommended && strategyPinnedIds.has(slot.id)) {
       feedback.textContent += "｜此格已釘選，本輪計算恆為100%，「任一推薦」不生效；"
         + "以上機率是改成重骰這一格時的參考值";
-    }
-    // 群組3有四項是推論補齊的，合計雖已達100%，但來源不是截圖，仍要讓使用者知道。
-    if (matched.groupId === INFERRED_GROUP_ID) {
-      feedback.textContent += `｜注意：群組${INFERRED_GROUP_ID}有 4 項為推論補齊，非截圖實測值`;
     }
     feedback.classList.add("is-valid");
   }
@@ -1776,8 +1672,8 @@
   const recommendedCount = rows.filter((row) => row.recommended).length;
 
   if (
-    groups.length !== 19
-    || rows.length !== 191
+    groups.length !== 18
+    || rows.length !== 109
     || recommendedCount !== expectedRecommendedCount
   ) {
     console.warn(
