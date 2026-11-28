@@ -62,7 +62,12 @@
 
   const entry = (name, rate, grade = GRADE_LOW) => ({ name, rate, grade });
   const intermediateEntry = (name, rate) => entry(name, rate, GRADE_INTERMEDIATE);
-  const groupRate = (id) =>
+  // 每轉費用，索引＝已釘選的格數（2026-11-28 遊戲調整：2,000/3,000/5,000 → 1,200/1,800/3,000）。
+// 三者的比例仍是 1 : 1.5 : 2.5，所以所有「哪一種釘法比較划算」的相對結論都不受影響，
+// 只有絕對點數整體乘上 0.6。本頁只用得到 PIN_COST[2]（釘滿兩格的終局成本）。
+const PIN_COST = [1200, 1800, 3000];
+
+const groupRate = (id) =>
     (id === HIGH_GRADE_GROUP_ID ? HIGH_GRADE_GROUP_RATE : GROUP_RATES[id - 1]);
   const group = (id, entries) => ({
     id,
@@ -768,7 +773,7 @@
       ? `群組${row.groupId} ${describeStrategyTarget(row, true)}`
       : `${row.item}（群組${row.groupId}）`;
   }
-  // 保留 1 位小數：期望次數本來就不是整數，取整會讓人拿它去乘 5,000 而對不上期望花費。
+  // 保留 1 位小數：期望次數本來就不是整數，取整會讓人拿它去乘 3,000 而對不上期望花費。
   const formatRolls = (value) => value.toLocaleString("en-US", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
@@ -1204,7 +1209,8 @@
       whiteRate,
       perRoll,
       expectedRolls: perRoll > 0 ? 1 / perRoll : Number.POSITIVE_INFINITY,
-      expectedCost: perRoll > 0 ? 5000 / perRoll : Number.POSITIVE_INFINITY,
+      // 釘滿 2 格時每轉 3,000 點（2026-11-28 調整：1,200 / 1,800 / 3,000）。
+      expectedCost: perRoll > 0 ? PIN_COST[2] / perRoll : Number.POSITIVE_INFINITY,
       rollingWhites,
       rollingWhiteSlotCount,
     };
@@ -1602,7 +1608,7 @@
 
     const note = document.createElement("p");
     note.className = "strategy-note";
-    note.textContent = "期望花費只計算目前兩格已釘後的終局階段：每次 5,000 點 ÷ 單次達成率；"
+    note.textContent = "期望花費只計算目前兩格已釘後的終局階段：每次 3,000 點 ÷ 單次達成率；"
       + "不包含取得目前釘選內容及中途換釘的前置成本，不同釘法不一定具有相同起跑點。"
       + "每格都以該欄位目標範圍的群組內機率計算（指定單一格＝只認那一個數值格；"
       + "群組任一推薦＝該群組同等級的 ★ 推薦能力都算命中），"
